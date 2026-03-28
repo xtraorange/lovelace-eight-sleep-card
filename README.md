@@ -46,6 +46,12 @@ Then add the resource if HACS does not add it automatically:
 
 3. Refresh the browser.
 
+## Update behavior
+
+For the standard Home Assistant update flow (including frontend reload prompts/fixes when available), prefer installing via HACS with the `/hacsfiles/...` resource.
+
+Manual `/local/...` resources can behave differently across browsers and app sessions because they are not managed through HACS.
+
 ## Basic usage
 
 After installation, add the card through the dashboard card picker as **Eight Sleep Card**.
