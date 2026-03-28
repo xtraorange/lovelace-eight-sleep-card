@@ -1,39 +1,763 @@
+const EIGHT_SLEEP_DEFAULT_CONFIG = {
+  title: "Eight Sleep",
+  avatar_mode: "auto",
+  tap_action_expand: true,
+  show_room_temp: true,
+  show_hub_status: true,
+  show_has_water: true,
+  show_needs_priming: true,
+  show_is_priming: false,
+  show_last_prime: false,
+  show_bed_temp: true,
+  show_target_temp: true,
+  show_sleep_stage: true,
+  show_time_slept: true,
+  show_heart_rate: true,
+  show_breath_rate: false,
+  show_hrv: false,
+  show_scores: false,
+  show_next_alarm: false,
+  show_presence_times: false,
+  show_occupancy_wash: true,
+  show_bed_graphic: true,
+  show_compact_panels: true,
+};
+
+function createEightSleepConfig(config = {}) {
+  return {
+    ...EIGHT_SLEEP_DEFAULT_CONFIG,
+    ...config,
+    left: {
+      name: "Left",
+      ...(config.left || {}),
+    },
+    right: {
+      name: "Right",
+      ...(config.right || {}),
+    },
+    hub: {
+      ...(config.hub || {}),
+    },
+  };
+}
+
+function isEightSleepMissingValue(value) {
+  if (value === null || value === undefined || value === "") return true;
+  const text = String(value).toLowerCase();
+  return text === "unknown" || text === "unavailable" || text === "none";
+}
+
+function toEightSleepText(value, fallback = "â€”") {
+  return isEightSleepMissingValue(value) ? fallback : String(value);
+}
+
+function getEightSleepCardStyles(tapActionExpand) {
+  return `
+      <style>
+        :host {
+          display: block;
+        }
+
+        ha-card {
+          background:
+            radial-gradient(circle at top center, rgba(255,255,255,0.05), transparent 42%),
+            linear-gradient(180deg, #0b0b0b 0%, #030303 100%);
+          color: white;
+          border-radius: 24px;
+          overflow: hidden;
+          border: 1px solid rgba(255,255,255,0.05);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.04),
+            0 8px 30px rgba(0,0,0,0.35);
+          position: relative;
+        }
+
+        .clickable {
+          cursor: ${tapActionExpand ? "pointer" : "default"};
+        }
+
+        .wrap {
+          padding: 18px;
+        }
+
+        .header {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+
+        .title-wrap {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+
+        .title {
+          font-size: 15px;
+          font-weight: 700;
+          color: rgba(255,255,255,0.94);
+          letter-spacing: 0.2px;
+        }
+
+        .room-temp {
+          font-size: 12px;
+          color: rgba(255,255,255,0.7);
+          white-space: nowrap;
+        }
+
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .status-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.06);
+          font-size: 11px;
+          color: rgba(255,255,255,0.72);
+          white-space: nowrap;
+        }
+
+        .status-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          animation: pulseDot 1.8s ease-in-out infinite;
+        }
+
+        @keyframes pulseDot {
+          0%, 100% { transform: scale(1); opacity: 0.85; }
+          50% { transform: scale(1.22); opacity: 1; }
+        }
+
+        .power-button,
+        .close-button {
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.04);
+          color: white;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 16px;
+        }
+
+        .power-button:hover,
+        .close-button:hover {
+          background: rgba(255,255,255,0.08);
+        }
+
+        .bed-wrap {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          margin: 10px 0 16px;
+        }
+
+        svg {
+          width: 100%;
+          max-width: 520px;
+          height: auto;
+          display: block;
+        }
+
+        .details {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+
+        .panel {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.05);
+          border-radius: 18px;
+          padding: 12px;
+          min-width: 0;
+        }
+
+        .panel-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          margin-bottom: 8px;
+        }
+
+        .name-wrap {
+          min-width: 0;
+        }
+
+        .name {
+          font-size: 13px;
+          font-weight: 700;
+          color: rgba(255,255,255,0.95);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .location {
+          font-size: 11px;
+          color: rgba(255,255,255,0.56);
+          margin-top: 2px;
+          text-transform: capitalize;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .mode-badge {
+          width: 10px;
+          height: 10px;
+          border-radius: 999px;
+          flex: 0 0 auto;
+        }
+
+        .big {
+          font-size: 24px;
+          font-weight: 800;
+          line-height: 1.05;
+          margin-bottom: 4px;
+        }
+
+        .mode {
+          font-size: 12px;
+          color: rgba(255,255,255,0.68);
+          margin-bottom: 10px;
+        }
+
+        .meta {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px 10px;
+        }
+
+        .meta-item {
+          font-size: 11px;
+          color: rgba(255,255,255,0.56);
+        }
+
+        .meta-item strong {
+          display: block;
+          margin-top: 2px;
+          color: rgba(255,255,255,0.88);
+          font-size: 12px;
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .metric {
+          min-width: 0;
+        }
+
+        .metric-label {
+          font-size: 11px;
+          color: rgba(255,255,255,0.56);
+        }
+
+        .metric-value {
+          margin-top: 2px;
+          color: rgba(255,255,255,0.9);
+          font-size: 12px;
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0,0,0,0.78);
+          backdrop-filter: blur(8px);
+          z-index: 20;
+          display: flex;
+          align-items: stretch;
+          justify-content: stretch;
+        }
+
+        .overlay-card {
+          width: 100%;
+          height: 100%;
+          overflow: auto;
+          padding: 18px;
+          box-sizing: border-box;
+        }
+
+        .overlay-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 14px;
+        }
+
+        .overlay-title {
+          font-size: 16px;
+          font-weight: 700;
+        }
+
+        .expanded-layout {
+          display: grid;
+          gap: 14px;
+        }
+
+        .expanded-section {
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 18px;
+          padding: 14px;
+        }
+
+        .expanded-title {
+          font-size: 13px;
+          font-weight: 700;
+          margin-bottom: 10px;
+          color: rgba(255,255,255,0.93);
+        }
+
+        .expanded-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px 12px;
+        }
+
+        @media (max-width: 700px) {
+          .details {
+            grid-template-columns: 1fr;
+          }
+
+          .expanded-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .header {
+            grid-template-columns: 1fr;
+          }
+
+          .header-actions {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+          }
+        }
+
+        @media (max-width: 500px) {
+          .details {
+            grid-template-columns: 1fr;
+          }
+        }
+      </style>
+  `;
+}
+
+function renderEightSleepBedGraphic(card, left, right) {
+  if (!card._config.show_bed_graphic) return ``;
+  return `
+                <div class="bed-wrap">
+                  <svg viewBox="0 0 680 470" role="img" aria-label="Eight Sleep bed card">
+                    <defs>
+                      <linearGradient id="bedShellGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#1a1a1b"></stop>
+                        <stop offset="100%" stop-color="#101011"></stop>
+                      </linearGradient>
+
+                      <linearGradient id="bedTopGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#121214"></stop>
+                        <stop offset="100%" stop-color="#0b0b0d"></stop>
+                      </linearGradient>
+
+                      <pattern id="mattressTexture" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                        <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,0.12)" stroke-width="1" />
+                      </pattern>
+
+                      <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+                        <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="rgba(0,0,0,0.45)" />
+                      </filter>
+                    </defs>
+
+                    <path
+                      d="M150 78
+                         C150 60, 165 48, 184 48
+                         L496 48
+                         C515 48, 530 60, 530 78
+                         L560 366
+                         C563 392, 544 412, 518 412
+                         L162 412
+                         C136 412, 117 392, 120 366
+                         Z"
+                      fill="url(#bedShellGradient)"
+                      filter="url(#softShadow)"
+                    ></path>
+
+                    <path
+                      d="M172 82
+                         C172 70, 181 62, 194 62
+                         L486 62
+                         C499 62, 508 70, 508 82
+                         L534 338
+                         C536 356, 522 370, 504 370
+                         L176 370
+                         C158 370, 144 356, 146 338
+                         Z"
+                      fill="url(#bedTopGradient)"
+                    ></path>
+
+                    <path
+                      d="M186 92
+                         C186 82, 193 76, 203 76
+                         L334 76
+                         C344 76, 351 82, 351 92
+                         L370 320
+                         C371 334, 361 344, 347 344
+                         L193 344
+                         C179 344, 169 334, 170 320
+                         Z"
+                      fill="rgba(255,255,255,0.018)"
+                    ></path>
+
+                    <path
+                      d="M186 92
+                         C186 82, 193 76, 203 76
+                         L334 76
+                         C344 76, 351 82, 351 92
+                         L370 320
+                         C371 334, 361 344, 347 344
+                         L193 344
+                         C179 344, 169 334, 170 320
+                         Z"
+                      fill="url(#mattressTexture)"
+                      opacity="0.16"
+                    ></path>
+
+                    <path
+                      d="M186 92
+                         C186 82, 193 76, 203 76
+                         L334 76
+                         C344 76, 351 82, 351 92
+                         L370 320
+                         C371 334, 361 344, 347 344
+                         L193 344
+                         C179 344, 169 334, 170 320
+                         Z"
+                      fill="none"
+                      stroke="${left.color}"
+                      stroke-width="3.5"
+                      style="filter: drop-shadow(0 0 6px ${left.color}) drop-shadow(0 0 14px ${left.color});"
+                    ></path>
+
+                    <path
+                      d="M348 92
+                         C348 82, 355 76, 365 76
+                         L496 76
+                         C506 76, 513 82, 513 92
+                         L532 320
+                         C533 334, 523 344, 509 344
+                         L355 344
+                         C341 344, 331 334, 332 320
+                         Z"
+                      fill="rgba(255,255,255,0.018)"
+                    ></path>
+
+                    <path
+                      d="M348 92
+                         C348 82, 355 76, 365 76
+                         L496 76
+                         C506 76, 513 82, 513 92
+                         L532 320
+                         C533 334, 523 344, 509 344
+                         L355 344
+                         C341 344, 331 334, 332 320
+                         Z"
+                      fill="url(#mattressTexture)"
+                      opacity="0.16"
+                    ></path>
+
+                    <path
+                      d="M348 92
+                         C348 82, 355 76, 365 76
+                         L496 76
+                         C506 76, 513 82, 513 92
+                         L532 320
+                         C533 334, 523 344, 509 344
+                         L355 344
+                         C341 344, 331 334, 332 320
+                         Z"
+                      fill="none"
+                      stroke="${right.color}"
+                      stroke-width="3.5"
+                      style="filter: drop-shadow(0 0 6px ${right.color}) drop-shadow(0 0 14px ${right.color});"
+                    ></path>
+
+                    <line
+                      x1="340"
+                      y1="80"
+                      x2="350"
+                      y2="340"
+                      stroke="rgba(255,255,255,0.12)"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                    ></line>
+
+                    <path
+                      d="M206 104
+                         C206 94, 214 88, 224 88
+                         L306 88
+                         C316 88, 324 94, 324 104
+                         L324 130
+                         C324 140, 316 146, 306 146
+                         L224 146
+                         C214 146, 206 140, 206 130
+                         Z"
+                      fill="#f5f5f5"
+                    ></path>
+
+                    <path
+                      d="M370 104
+                         C370 94, 378 88, 388 88
+                         L470 88
+                         C480 88, 488 94, 488 104
+                         L488 130
+                         C488 140, 480 146, 470 146
+                         L388 146
+                         C378 146, 370 140, 370 130
+                         Z"
+                      fill="#f5f5f5"
+                    ></path>
+
+                    ${card._renderAvatar(left, 278, 86)}
+                    ${card._renderAvatar(right, 442, 86)}
+
+                    ${card._config.show_occupancy_wash && left.occupied
+          ? `
+                          <path
+                            d="M186 92
+                               C186 82, 193 76, 203 76
+                               L334 76
+                               C344 76, 351 82, 351 92
+                               L370 320
+                               C371 334, 361 344, 347 344
+                               L193 344
+                               C179 344, 169 334, 170 320
+                               Z"
+                            fill="${left.color}"
+                            opacity="0.08"
+                          ></path>
+                        `
+          : ``
+      }
+
+                    ${card._config.show_occupancy_wash && right.occupied
+          ? `
+                          <path
+                            d="M348 92
+                               C348 82, 355 76, 365 76
+                               L496 76
+                               C506 76, 513 82, 513 92
+                               L532 320
+                               C533 334, 523 344, 509 344
+                               L355 344
+                               C341 344, 331 334, 332 320
+                               Z"
+                            fill="${right.color}"
+                            opacity="0.08"
+                          ></path>
+                        `
+          : ``
+      }
+                  </svg>
+                </div>
+              `;
+}
+
+function renderEightSleepCompactPanels(card, left, right) {
+  if (!card._config.show_compact_panels) return ``;
+  return `
+                <div class="details">
+                  <div class="panel">
+                    <div class="panel-head">
+                      <div class="name-wrap">
+                        <div class="name">${left.name}</div>
+                        ${card._config.show_location ? `<div class="location">${left.personState}</div>` : ``}
+                      </div>
+                      <div class="mode-badge" style="background:${left.color}; box-shadow: 0 0 12px ${left.color};"></div>
+                    </div>
+
+                    <div class="big">${left.targetTemp}</div>
+                    <div class="mode">${left.modeLabel}</div>
+
+                    <div class="meta">
+                      <div class="meta-item">Occupied<strong>${left.occupied ? "Yes" : "No"}</strong></div>
+
+                      ${card._config.show_sleep_stage
+          ? `<div class="meta-item">Stage<strong>${left.sleepStage}</strong></div>`
+          : ``}
+
+                      ${card._config.show_time_slept
+          ? `<div class="meta-item">Slept<strong>${left.timeSlept}</strong></div>`
+          : ``}
+
+                      ${card._config.show_heart_rate
+          ? `<div class="meta-item">Heart Rate<strong>${left.heartRate}</strong></div>`
+          : ``}
+
+                      ${card._config.show_breath_rate
+          ? `<div class="meta-item">Breath Rate<strong>${left.breathRate}</strong></div>`
+          : ``}
+
+                      ${card._config.show_hrv
+          ? `<div class="meta-item">HRV<strong>${left.hrv}</strong></div>`
+          : ``}
+
+                      ${card._config.show_bed_temp
+          ? `<div class="meta-item">Bed Temp<strong>${left.bedTemp}</strong></div>`
+          : ``}
+
+                      ${card._config.show_scores
+          ? `<div class="meta-item">Fitness<strong>${left.fitnessScore}</strong></div>`
+          : ``}
+
+                      ${card._config.show_scores
+          ? `<div class="meta-item">Quality<strong>${left.qualityScore}</strong></div>`
+          : ``}
+
+                      ${card._config.show_scores
+          ? `<div class="meta-item">Routine<strong>${left.routineScore}</strong></div>`
+          : ``}
+
+                      ${card._config.show_next_alarm
+          ? `<div class="meta-item">Alarm<strong>${left.nextAlarm}</strong></div>`
+          : ``}
+
+                      ${card._config.show_presence_times
+          ? `<div class="meta-item">In Bed<strong>${left.presenceStart}</strong></div>`
+          : ``}
+
+                      ${card._config.show_presence_times
+          ? `<div class="meta-item">Out of Bed<strong>${left.presenceEnd}</strong></div>`
+          : ``}
+                    </div>
+                  </div>
+
+                  <div class="panel">
+                    <div class="panel-head">
+                      <div class="name-wrap">
+                        <div class="name">${right.name}</div>
+                        ${card._config.show_location ? `<div class="location">${right.personState}</div>` : ``}
+                      </div>
+                      <div class="mode-badge" style="background:${right.color}; box-shadow: 0 0 12px ${right.color};"></div>
+                    </div>
+
+                    <div class="big">${right.targetTemp}</div>
+                    <div class="mode">${right.modeLabel}</div>
+
+                    <div class="meta">
+                      <div class="meta-item">Occupied<strong>${right.occupied ? "Yes" : "No"}</strong></div>
+
+                      ${card._config.show_sleep_stage
+          ? `<div class="meta-item">Stage<strong>${right.sleepStage}</strong></div>`
+          : ``}
+
+                      ${card._config.show_time_slept
+          ? `<div class="meta-item">Slept<strong>${right.timeSlept}</strong></div>`
+          : ``}
+
+                      ${card._config.show_heart_rate
+          ? `<div class="meta-item">Heart Rate<strong>${right.heartRate}</strong></div>`
+          : ``}
+
+                      ${card._config.show_breath_rate
+          ? `<div class="meta-item">Breath Rate<strong>${right.breathRate}</strong></div>`
+          : ``}
+
+                      ${card._config.show_hrv
+          ? `<div class="meta-item">HRV<strong>${right.hrv}</strong></div>`
+          : ``}
+
+                      ${card._config.show_bed_temp
+          ? `<div class="meta-item">Bed Temp<strong>${right.bedTemp}</strong></div>`
+          : ``}
+
+                      ${card._config.show_scores
+          ? `<div class="meta-item">Fitness<strong>${right.fitnessScore}</strong></div>`
+          : ``}
+
+                      ${card._config.show_scores
+          ? `<div class="meta-item">Quality<strong>${right.qualityScore}</strong></div>`
+          : ``}
+
+                      ${card._config.show_scores
+          ? `<div class="meta-item">Routine<strong>${right.routineScore}</strong></div>`
+          : ``}
+
+                      ${card._config.show_next_alarm
+          ? `<div class="meta-item">Alarm<strong>${right.nextAlarm}</strong></div>`
+          : ``}
+
+                      ${card._config.show_presence_times
+          ? `<div class="meta-item">In Bed<strong>${right.presenceStart}</strong></div>`
+          : ``}
+
+                      ${card._config.show_presence_times
+          ? `<div class="meta-item">Out of Bed<strong>${right.presenceEnd}</strong></div>`
+          : ``}
+                    </div>
+                  </div>
+                </div>
+              `;
+}
+
+function renderEightSleepExpandedOverlay(card, left, right, expandedLeft, expandedRight, expandedHub) {
+  if (!card._expanded) return ``;
+  return `
+              <div class="overlay" id="overlay">
+                <div class="overlay-card">
+                  <div class="overlay-header">
+                    <div class="overlay-title">${card._config.title}</div>
+                    <button class="close-button" title="Close">âœ•</button>
+                  </div>
+
+                  <div class="expanded-layout">
+                    <div class="expanded-section">
+                      <div class="expanded-title">${left.name}</div>
+                      <div class="expanded-grid">${expandedLeft}</div>
+                    </div>
+
+                    <div class="expanded-section">
+                      <div class="expanded-title">${right.name}</div>
+                      <div class="expanded-grid">${expandedRight}</div>
+                    </div>
+
+                    <div class="expanded-section">
+                      <div class="expanded-title">Bed / Hub</div>
+                      <div class="expanded-grid">${expandedHub}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+}
+
 class EightSleepCard extends HTMLElement {
   static getConfigElement() {
     return document.createElement("eight-sleep-card-editor");
   }
 
   static getStubConfig() {
-    return {
-      title: "Eight Sleep",
-      avatar_mode: "auto",
-      tap_action_expand: true,
-      show_room_temp: true,
-      show_hub_status: true,
-      show_has_water: true,
-      show_needs_prime: true,
-      show_last_prime: false,
-      show_bed_temp: true,
-      show_target_temp: true,
-      show_sleep_stage: true,
-      show_time_slept: true,
-      show_heart_rate: true,
-      show_breath_rate: false,
-      show_hrv: false,
-      show_scores: false,
-      show_next_alarm: false,
-      show_presence_times: false,
-      show_occupancy_wash: true,
-      show_bed_graphic: true,
-      show_compact_panels: true,
-      left: {
-        name: "Left",
-      },
-      right: {
-        name: "Right",
-      },
-      hub: {},
-    };
+    return createEightSleepConfig();
   }
 
   constructor() {
@@ -46,42 +770,7 @@ class EightSleepCard extends HTMLElement {
   }
 
   setConfig(config) {
-    this._config = {
-      title: "Eight Sleep",
-      avatar_mode: "auto",
-      tap_action_expand: true,
-      show_room_temp: true,
-      show_hub_status: true,
-      show_has_water: true,
-      show_needs_prime: true,
-      show_last_prime: false,
-      show_bed_temp: true,
-      show_target_temp: true,
-      show_sleep_stage: true,
-      show_time_slept: true,
-      show_heart_rate: true,
-      show_breath_rate: false,
-      show_hrv: false,
-      show_scores: false,
-      show_next_alarm: false,
-      show_presence_times: false,
-      show_occupancy_wash: true,
-      show_bed_graphic: true,
-      show_compact_panels: true,
-      left: {
-        name: "Left",
-        ...(config.left || {}),
-      },
-      right: {
-        name: "Right",
-        ...(config.right || {}),
-      },
-      hub: {
-        ...(config.hub || {}),
-      },
-      ...config,
-    };
-
+    this._config = createEightSleepConfig(config);
     this._forceRender();
   }
 
@@ -111,6 +800,7 @@ class EightSleepCard extends HTMLElement {
     const ids = [
       this._config.left?.person_entity,
       this._config.left?.presence_entity,
+      this._config.left?.bed_state_entity,
       this._config.left?.bed_state_type_entity,
       this._config.left?.target_temp_entity,
       this._config.left?.bed_temp_entity,
@@ -121,12 +811,14 @@ class EightSleepCard extends HTMLElement {
       this._config.left?.time_slept_entity,
       this._config.left?.sleep_fitness_score_entity,
       this._config.left?.sleep_quality_score_entity,
-      this._config.left?.sleep_routine_score_entity,
+      this._config.left?.routine_score_entity,
       this._config.left?.next_alarm_entity,
       this._config.left?.presence_start_entity,
       this._config.left?.presence_end_entity,
+
       this._config.right?.person_entity,
       this._config.right?.presence_entity,
+      this._config.right?.bed_state_entity,
       this._config.right?.bed_state_type_entity,
       this._config.right?.target_temp_entity,
       this._config.right?.bed_temp_entity,
@@ -137,14 +829,15 @@ class EightSleepCard extends HTMLElement {
       this._config.right?.time_slept_entity,
       this._config.right?.sleep_fitness_score_entity,
       this._config.right?.sleep_quality_score_entity,
-      this._config.right?.sleep_routine_score_entity,
+      this._config.right?.routine_score_entity,
       this._config.right?.next_alarm_entity,
       this._config.right?.presence_start_entity,
       this._config.right?.presence_end_entity,
-      this._config.hub?.status_entity,
+
       this._config.hub?.room_temp_entity,
       this._config.hub?.has_water_entity,
-      this._config.hub?.needs_prime_entity,
+      this._config.hub?.is_priming_entity,
+      this._config.hub?.needs_priming_entity,
       this._config.hub?.last_prime_entity,
       this._config.power_entity,
     ].filter(Boolean);
@@ -177,26 +870,11 @@ class EightSleepCard extends HTMLElement {
   }
 
   _safeText(value, fallback = "—") {
-    if (
-      value === null ||
-      value === undefined ||
-      value === "" ||
-      value === "unknown" ||
-      value === "unavailable" ||
-      value === "none"
-    ) {
-      return fallback;
-    }
-    return String(value);
+    return toEightSleepText(value, fallback);
   }
 
   _formatTemp(value) {
-    if (
-      value === null ||
-      value === undefined ||
-      value === "unknown" ||
-      value === "unavailable"
-    ) {
+    if (isEightSleepMissingValue(value)) {
       return "—";
     }
     return `${value}°`;
@@ -297,38 +975,23 @@ class EightSleepCard extends HTMLElement {
   }
 
   _statusInfo() {
-    const status = this._safeText(this._state(this._config.hub?.status_entity, null), "");
     const hasWater = this._presenceOn(this._state(this._config.hub?.has_water_entity, null));
-    const needsPrime = this._presenceOn(this._state(this._config.hub?.needs_prime_entity, null));
+    const isPriming = this._presenceOn(this._state(this._config.hub?.is_priming_entity, null));
+    const needsPriming = this._presenceOn(this._state(this._config.hub?.needs_priming_entity, null));
 
-    let label = "Unknown";
-    let color = "#6b7280";
-
-    const normalized = status.toLowerCase();
-
-    if (normalized.includes("online") || normalized.includes("ready") || normalized.includes("ok")) {
-      label = "Online";
-      color = "#22c55e";
-    } else if (normalized.includes("offline") || normalized.includes("error") || normalized.includes("unavailable")) {
-      label = "Offline";
-      color = "#ef4444";
-    } else if (status) {
-      label = status;
-      color = "#8b5cf6";
-    } else if (needsPrime) {
-      label = "Needs Prime";
-      color = "#f59e0b";
-    } else if (hasWater) {
-      label = "Online";
-      color = "#22c55e";
+    if (needsPriming) {
+      return { label: "Needs Priming", color: "#f59e0b" };
     }
 
-    if (needsPrime) {
-      label = "Needs Prime";
-      color = "#f59e0b";
+    if (isPriming) {
+      return { label: "Priming", color: "#8b5cf6" };
     }
 
-    return { label, color };
+    if (hasWater) {
+      return { label: "Online", color: "#22c55e" };
+    }
+
+    return { label: "Offline", color: "#6b7280" };
   }
 
   _buildSide(sideConfig) {
@@ -352,7 +1015,7 @@ class EightSleepCard extends HTMLElement {
     const timeSlept = this._state(sideConfig.time_slept_entity, null);
     const fitnessScore = this._state(sideConfig.sleep_fitness_score_entity, null);
     const qualityScore = this._state(sideConfig.sleep_quality_score_entity, null);
-    const routineScore = this._state(sideConfig.sleep_routine_score_entity, null);
+    const routineScore = this._state(sideConfig.routine_score_entity, null);
     const nextAlarm = this._state(sideConfig.next_alarm_entity, null);
     const presenceStart = this._state(sideConfig.presence_start_entity, null);
     const presenceEnd = this._state(sideConfig.presence_end_entity, null);
@@ -394,11 +1057,11 @@ class EightSleepCard extends HTMLElement {
       : `<span>${side.initials}</span>`;
 
     return `
-      <foreignObject x="${x}" y="${y}" width="62" height="62">
+      <foreignObject x="${x}" y="${y}" width="54" height="54">
         <div xmlns="http://www.w3.org/1999/xhtml"
              style="
-               width:56px;
-               height:56px;
+               width:48px;
+               height:48px;
                border-radius:50%;
                overflow:hidden;
                border:2px solid ${side.color};
@@ -410,7 +1073,7 @@ class EightSleepCard extends HTMLElement {
                align-items:center;
                justify-content:center;
                color:white;
-               font:700 14px system-ui,sans-serif;
+               font:700 13px system-ui,sans-serif;
              ">
           ${inner}
         </div>
@@ -423,39 +1086,6 @@ class EightSleepCard extends HTMLElement {
       <div class="metric">
         <div class="metric-label">${icon ? `${icon} ` : ""}${label}</div>
         <div class="metric-value">${value}</div>
-      </div>
-    `;
-  }
-
-  _compactPanel(side) {
-    const parts = [];
-
-    if (this._config.show_target_temp) parts.push(this._metric("Target", side.targetTemp, "🎯"));
-    if (this._config.show_sleep_stage) parts.push(this._metric("Stage", side.sleepStage, "🌙"));
-    if (this._config.show_time_slept) parts.push(this._metric("Slept", side.timeSlept, "⏱️"));
-    if (this._config.show_heart_rate) parts.push(this._metric("Heart", side.heartRate, "❤️"));
-    if (this._config.show_breath_rate) parts.push(this._metric("Breath", side.breathRate, "🫁"));
-    if (this._config.show_hrv) parts.push(this._metric("HRV", side.hrv, "📈"));
-    if (this._config.show_bed_temp) parts.push(this._metric("Bed", side.bedTemp, "🛏️"));
-
-    if (this._config.show_scores) {
-      parts.push(this._metric("Fitness", side.fitnessScore, "💪"));
-      parts.push(this._metric("Quality", side.qualityScore, "⭐"));
-      parts.push(this._metric("Routine", side.routineScore, "🗓️"));
-    }
-
-    if (this._config.show_next_alarm) {
-      parts.push(this._metric("Alarm", side.nextAlarm, "⏰"));
-    }
-
-    return parts.join("");
-  }
-
-  _expandedSection(title, body) {
-    return `
-      <div class="expanded-section">
-        <div class="expanded-title">${title}</div>
-        <div class="expanded-grid">${body}</div>
       </div>
     `;
   }
@@ -506,7 +1136,8 @@ class EightSleepCard extends HTMLElement {
     const status = this._statusInfo();
     const roomTemp = this._formatTemp(this._state(this._config.hub?.room_temp_entity, null));
     const hasWater = this._presenceOn(this._state(this._config.hub?.has_water_entity, null));
-    const needsPrime = this._presenceOn(this._state(this._config.hub?.needs_prime_entity, null));
+    const isPriming = this._presenceOn(this._state(this._config.hub?.is_priming_entity, null));
+    const needsPriming = this._presenceOn(this._state(this._config.hub?.needs_priming_entity, null));
     const lastPrime = this._formatDateish(this._state(this._config.hub?.last_prime_entity, null));
 
     const showRoomTemp = this._config.show_room_temp && this._config.hub?.room_temp_entity;
@@ -554,285 +1185,13 @@ class EightSleepCard extends HTMLElement {
       this._metric("Bed Status", status.label, "🟢"),
       this._metric("Room Temperature", roomTemp, "🌡️"),
       this._metric("Has Water", hasWater ? "Yes" : "No", "💧"),
-      this._metric("Needs Prime", needsPrime ? "Yes" : "No", "⚠️"),
+      this._metric("Is Priming", isPriming ? "Yes" : "No", "🔄"),
+      this._metric("Needs Priming", needsPriming ? "Yes" : "No", "⚠️"),
       this._metric("Last Prime", lastPrime, "🕒"),
     ].join("");
 
     this.shadowRoot.innerHTML = `
-      <style>
-        :host {
-          display: block;
-        }
-
-        ha-card {
-          background:
-            radial-gradient(circle at top center, rgba(255,255,255,0.05), transparent 42%),
-            linear-gradient(180deg, #0b0b0b 0%, #030303 100%);
-          color: white;
-          border-radius: 24px;
-          overflow: hidden;
-          border: 1px solid rgba(255,255,255,0.05);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.04),
-            0 8px 30px rgba(0,0,0,0.35);
-          position: relative;
-        }
-
-        .clickable {
-          cursor: ${this._config.tap_action_expand ? "pointer" : "default"};
-        }
-
-        .wrap {
-          padding: 18px;
-        }
-
-        .header {
-          display: grid;
-          grid-template-columns: 1fr auto;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-
-        .title-wrap {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 0;
-        }
-
-        .title {
-          font-size: 15px;
-          font-weight: 700;
-          color: rgba(255,255,255,0.94);
-          letter-spacing: 0.2px;
-        }
-
-        .room-temp {
-          font-size: 12px;
-          color: rgba(255,255,255,0.7);
-          white-space: nowrap;
-        }
-
-        .header-actions {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .status-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.06);
-          font-size: 11px;
-          color: rgba(255,255,255,0.72);
-          white-space: nowrap;
-        }
-
-        .status-dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          animation: pulseDot 1.8s ease-in-out infinite;
-        }
-
-        @keyframes pulseDot {
-          0%, 100% { transform: scale(1); opacity: 0.85; }
-          50% { transform: scale(1.22); opacity: 1; }
-        }
-
-        .power-button,
-        .close-button {
-          width: 34px;
-          height: 34px;
-          border-radius: 50%;
-          border: 1px solid rgba(255,255,255,0.1);
-          background: rgba(255,255,255,0.04);
-          color: white;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          font-size: 16px;
-        }
-
-        .power-button:hover,
-        .close-button:hover {
-          background: rgba(255,255,255,0.08);
-        }
-
-        .bed-wrap {
-          width: 100%;
-          display: flex;
-          justify-content: center;
-          margin: 6px 0 16px;
-        }
-
-        svg {
-          width: 100%;
-          max-width: 560px;
-          height: auto;
-          display: block;
-        }
-
-        .details {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-
-        .panel {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.05);
-          border-radius: 18px;
-          padding: 12px;
-          min-width: 0;
-        }
-
-        .panel-head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          margin-bottom: 10px;
-        }
-
-        .name-wrap {
-          min-width: 0;
-        }
-
-        .name {
-          font-size: 13px;
-          font-weight: 700;
-          color: rgba(255,255,255,0.95);
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .location {
-          font-size: 11px;
-          color: rgba(255,255,255,0.56);
-          margin-top: 2px;
-          text-transform: capitalize;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .mode-badge {
-          width: 10px;
-          height: 10px;
-          border-radius: 999px;
-          flex: 0 0 auto;
-        }
-
-        .metrics-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 8px 10px;
-        }
-
-        .metric {
-          min-width: 0;
-        }
-
-        .metric-label {
-          font-size: 11px;
-          color: rgba(255,255,255,0.56);
-        }
-
-        .metric-value {
-          margin-top: 2px;
-          color: rgba(255,255,255,0.9);
-          font-size: 12px;
-          font-weight: 600;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .overlay {
-          position: absolute;
-          inset: 0;
-          background: rgba(0,0,0,0.78);
-          backdrop-filter: blur(8px);
-          z-index: 20;
-          display: flex;
-          align-items: stretch;
-          justify-content: stretch;
-        }
-
-        .overlay-card {
-          width: 100%;
-          height: 100%;
-          overflow: auto;
-          padding: 18px;
-          box-sizing: border-box;
-        }
-
-        .overlay-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 14px;
-        }
-
-        .overlay-title {
-          font-size: 16px;
-          font-weight: 700;
-        }
-
-        .expanded-layout {
-          display: grid;
-          gap: 14px;
-        }
-
-        .expanded-section {
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 18px;
-          padding: 14px;
-        }
-
-        .expanded-title {
-          font-size: 13px;
-          font-weight: 700;
-          margin-bottom: 10px;
-          color: rgba(255,255,255,0.93);
-        }
-
-        .expanded-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 10px 12px;
-        }
-
-        @media (max-width: 700px) {
-          .details {
-            grid-template-columns: 1fr;
-          }
-
-          .expanded-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .header {
-            grid-template-columns: 1fr;
-          }
-
-          .header-actions {
-            justify-content: flex-start;
-            flex-wrap: wrap;
-          }
-        }
-      </style>
-
+      ${getEightSleepCardStyles(this._config.tap_action_expand)}
       <ha-card class="clickable">
         <div class="wrap" id="main-wrap">
           <div class="header">
@@ -842,191 +1201,29 @@ class EightSleepCard extends HTMLElement {
             </div>
 
             <div class="header-actions">
-              ${
-                this._config.show_hub_status
-                  ? `
+              ${this._config.show_hub_status
+        ? `
                     <div class="status-pill">
                       <span class="status-dot" style="background:${status.color}; box-shadow: 0 0 12px ${status.color};"></span>
                       <span>${status.label}</span>
                     </div>
                   `
-                  : ``
-              }
+        : ``
+      }
 
-              ${
-                showPower
-                  ? `<button class="power-button" title="Power">⏻</button>`
-                  : ``
-              }
+              ${showPower
+        ? `<button class="power-button" title="Power">⏻</button>`
+        : ``
+      }
             </div>
           </div>
 
-          ${
-            this._config.show_bed_graphic
-              ? `
-                <div class="bed-wrap">
-                  <svg viewBox="0 0 760 500" role="img" aria-label="Eight Sleep bed card">
-                    <defs>
-                      <linearGradient id="bedTopGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#111214"></stop>
-                        <stop offset="100%" stop-color="#0a0b0d"></stop>
-                      </linearGradient>
+          ${renderEightSleepBedGraphic(this, left, right)}
 
-                      <pattern id="mattressTexture" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                        <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,0.10)" stroke-width="1" />
-                      </pattern>
-                    </defs>
-
-                    <path d="M172 118 L150 394" stroke="rgba(255,255,255,0.12)" stroke-width="16" stroke-linecap="round"></path>
-                    <path d="M588 118 L610 394" stroke="rgba(255,255,255,0.12)" stroke-width="16" stroke-linecap="round"></path>
-                    <path d="M150 394 L610 394" stroke="rgba(255,255,255,0.12)" stroke-width="16" stroke-linecap="round"></path>
-
-                    <polygon points="180,108 580,108 606,384 154,384" fill="url(#bedTopGradient)"></polygon>
-
-                    <polygon points="188,118 378,118 392,370 168,370" fill="rgba(255,255,255,0.018)"></polygon>
-                    <polygon points="188,118 378,118 392,370 168,370" fill="url(#mattressTexture)" opacity="0.14"></polygon>
-                    <polyline points="188,118 378,118 392,370 168,370 188,118"
-                      fill="none"
-                      stroke="${left.color}"
-                      stroke-width="4"
-                      stroke-linejoin="round"
-                      style="filter: drop-shadow(0 0 6px ${left.color}) drop-shadow(0 0 16px ${left.color});"></polyline>
-
-                    <polygon points="382,118 572,118 592,370 368,370" fill="rgba(255,255,255,0.018)"></polygon>
-                    <polygon points="382,118 572,118 592,370 368,370" fill="url(#mattressTexture)" opacity="0.14"></polygon>
-                    <polyline points="382,118 572,118 592,370 368,370 382,118"
-                      fill="none"
-                      stroke="${right.color}"
-                      stroke-width="4"
-                      stroke-linejoin="round"
-                      style="filter: drop-shadow(0 0 6px ${right.color}) drop-shadow(0 0 16px ${right.color});"></polyline>
-
-                    <line x1="380" y1="118" x2="480" y2="370"
-                      stroke="rgba(255,255,255,0.12)"
-                      stroke-width="3"
-                      stroke-linecap="round"></line>
-
-                    <path d="M220 136 C220 122,230 114,244 114 L318 114 C332 114,342 122,342 136 L342 154 C342 168,332 176,318 176 L244 176 C230 176,220 168,220 154 Z"
-                      fill="#f5f5f5"
-                      style="filter: drop-shadow(0 3px 10px rgba(255,255,255,0.10));"></path>
-
-                    <path d="M418 136 C418 122,428 114,442 114 L516 114 C530 114,540 122,540 136 L540 154 C540 168,530 176,516 176 L442 176 C428 176,418 168,418 154 Z"
-                      fill="#f5f5f5"
-                      style="filter: drop-shadow(0 3px 10px rgba(255,255,255,0.10));"></path>
-
-                    ${this._renderAvatar(left, 326, 98)}
-                    ${this._renderAvatar(right, 524, 98)}
-
-                    ${
-                      this._config.show_occupancy_wash && left.occupied
-                        ? `<polygon points="188,118 378,118 392,370 168,370" fill="${left.color}" opacity="0.08"></polygon>`
-                        : ``
-                    }
-
-                    ${
-                      this._config.show_occupancy_wash && right.occupied
-                        ? `<polygon points="382,118 572,118 592,370 368,370" fill="${right.color}" opacity="0.08"></polygon>`
-                        : ``
-                    }
-                  </svg>
-                </div>
-              `
-              : ``
-          }
-
-          ${
-            this._config.show_compact_panels
-              ? `
-                <div class="details">
-                  <div class="panel">
-                    <div class="panel-head">
-                      <div class="name-wrap">
-                        <div class="name">${left.name}</div>
-                        ${this._config.show_location ? `<div class="location">${left.personState}</div>` : ``}
-                      </div>
-                      <div class="mode-badge" style="background:${left.color}; box-shadow: 0 0 12px ${left.color};"></div>
-                    </div>
-                    <div class="metrics-grid">
-                      ${this._compactPanel(left)}
-                    </div>
-                  </div>
-
-                  <div class="panel">
-                    <div class="panel-head">
-                      <div class="name-wrap">
-                        <div class="name">${right.name}</div>
-                        ${this._config.show_location ? `<div class="location">${right.personState}</div>` : ``}
-                      </div>
-                      <div class="mode-badge" style="background:${right.color}; box-shadow: 0 0 12px ${right.color};"></div>
-                    </div>
-                    <div class="metrics-grid">
-                      ${this._compactPanel(right)}
-                    </div>
-                  </div>
-                </div>
-              `
-              : ``
-          }
+          ${renderEightSleepCompactPanels(this, left, right)}
         </div>
 
-        ${
-          this._expanded
-            ? `
-              <div class="overlay" id="overlay">
-                <div class="overlay-card">
-                  <div class="overlay-header">
-                    <div class="overlay-title">${this._config.title}</div>
-                    <button class="close-button" title="Close">✕</button>
-                  </div>
-
-                  <div class="expanded-layout">
-                    ${
-                      this._config.show_bed_graphic
-                        ? `
-                          <div class="expanded-section">
-                            <div class="expanded-title">Overview</div>
-                            <div class="bed-wrap" style="margin:0;">
-                              <svg viewBox="0 0 760 500" role="img" aria-label="Eight Sleep bed expanded">
-                                <defs>
-                                  <linearGradient id="bedTopGradientExpanded" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stop-color="#111214"></stop>
-                                    <stop offset="100%" stop-color="#0a0b0d"></stop>
-                                  </linearGradient>
-                                  <pattern id="mattressTextureExpanded" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                                    <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,0.10)" stroke-width="1" />
-                                  </pattern>
-                                </defs>
-                                <path d="M172 118 L150 394" stroke="rgba(255,255,255,0.12)" stroke-width="16" stroke-linecap="round"></path>
-                                <path d="M588 118 L610 394" stroke="rgba(255,255,255,0.12)" stroke-width="16" stroke-linecap="round"></path>
-                                <path d="M150 394 L610 394" stroke="rgba(255,255,255,0.12)" stroke-width="16" stroke-linecap="round"></path>
-                                <polygon points="180,108 580,108 606,384 154,384" fill="url(#bedTopGradientExpanded)"></polygon>
-                                <polygon points="188,118 378,118 392,370 168,370" fill="rgba(255,255,255,0.018)"></polygon>
-                                <polygon points="188,118 378,118 392,370 168,370" fill="url(#mattressTextureExpanded)" opacity="0.14"></polygon>
-                                <polyline points="188,118 378,118 392,370 168,370 188,118" fill="none" stroke="${left.color}" stroke-width="4" style="filter: drop-shadow(0 0 6px ${left.color}) drop-shadow(0 0 16px ${left.color});"></polyline>
-                                <polygon points="382,118 572,118 592,370 368,370" fill="rgba(255,255,255,0.018)"></polygon>
-                                <polygon points="382,118 572,118 592,370 368,370" fill="url(#mattressTextureExpanded)" opacity="0.14"></polygon>
-                                <polyline points="382,118 572,118 592,370 368,370 382,118" fill="none" stroke="${right.color}" stroke-width="4" style="filter: drop-shadow(0 0 6px ${right.color}) drop-shadow(0 0 16px ${right.color});"></polyline>
-                                <line x1="380" y1="118" x2="480" y2="370" stroke="rgba(255,255,255,0.12)" stroke-width="3" stroke-linecap="round"></line>
-                                <path d="M220 136 C220 122,230 114,244 114 L318 114 C332 114,342 122,342 136 L342 154 C342 168,332 176,318 176 L244 176 C230 176,220 168,220 154 Z" fill="#f5f5f5"></path>
-                                <path d="M418 136 C418 122,428 114,442 114 L516 114 C530 114,540 122,540 136 L540 154 C540 168,530 176,516 176 L442 176 C428 176,418 168,418 154 Z" fill="#f5f5f5"></path>
-                                ${this._renderAvatar(left, 326, 98)}
-                                ${this._renderAvatar(right, 524, 98)}
-                              </svg>
-                            </div>
-                          </div>
-                        `
-                        : ``
-                    }
-
-                    ${this._expandedSection(`${left.name}`, expandedLeft)}
-                    ${this._expandedSection(`${right.name}`, expandedRight)}
-                    ${this._expandedSection(`Bed / Hub`, expandedHub)}
-                  </div>
-                </div>
-              </div>
-            `
-            : ``
-        }
+        ${renderEightSleepExpandedOverlay(this, left, right, expandedLeft, expandedRight, expandedHub)}
       </ha-card>
     `;
 
@@ -1052,8 +1249,6 @@ class EightSleepCard extends HTMLElement {
   }
 }
 
-customElements.define("eight-sleep-card", EightSleepCard);
-
 class EightSleepCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -1067,41 +1262,7 @@ class EightSleepCardEditor extends HTMLElement {
   }
 
   setConfig(config) {
-    this._config = {
-      title: "Eight Sleep",
-      avatar_mode: "auto",
-      tap_action_expand: true,
-      show_room_temp: true,
-      show_hub_status: true,
-      show_has_water: true,
-      show_needs_prime: true,
-      show_last_prime: false,
-      show_bed_temp: true,
-      show_target_temp: true,
-      show_sleep_stage: true,
-      show_time_slept: true,
-      show_heart_rate: true,
-      show_breath_rate: false,
-      show_hrv: false,
-      show_scores: false,
-      show_next_alarm: false,
-      show_presence_times: false,
-      show_occupancy_wash: true,
-      show_bed_graphic: true,
-      show_compact_panels: true,
-      ...config,
-      left: {
-        name: "Left",
-        ...(config.left || {}),
-      },
-      right: {
-        name: "Right",
-        ...(config.right || {}),
-      },
-      hub: {
-        ...(config.hub || {}),
-      },
-    };
+    this._config = createEightSleepConfig(config);
     this._render();
   }
 
@@ -1217,6 +1378,9 @@ class EightSleepCardEditor extends HTMLElement {
       presence_entity:
         existing.presence_entity ||
         this._findMatch(entityIds, [["bed", "presence"], ["presence"]]),
+      bed_state_entity:
+        existing.bed_state_entity ||
+        this._findMatch(entityIds, [["bed", "state"]]),
       bed_state_type_entity:
         existing.bed_state_type_entity ||
         this._findMatch(entityIds, [["bed", "state", "type"], ["state", "type"]]),
@@ -1247,9 +1411,9 @@ class EightSleepCardEditor extends HTMLElement {
       sleep_quality_score_entity:
         existing.sleep_quality_score_entity ||
         this._findMatch(entityIds, [["sleep", "quality", "score"], ["quality", "score"]]),
-      sleep_routine_score_entity:
-        existing.sleep_routine_score_entity ||
-        this._findMatch(entityIds, [["sleep", "routine", "score"], ["routine", "score"]]),
+      routine_score_entity:
+        existing.routine_score_entity ||
+        this._findMatch(entityIds, [["routine", "score"]]),
       next_alarm_entity:
         existing.next_alarm_entity ||
         this._findMatch(entityIds, [["next", "alarm"], ["alarm"]]),
@@ -1259,6 +1423,9 @@ class EightSleepCardEditor extends HTMLElement {
       presence_end_entity:
         existing.presence_end_entity ||
         this._findMatch(entityIds, [["presence", "end"]]),
+      side_entity:
+        existing.side_entity ||
+        this._findMatch(entityIds, [["side"]]),
     };
   }
 
@@ -1267,21 +1434,21 @@ class EightSleepCardEditor extends HTMLElement {
 
     return {
       ...existing,
-      status_entity:
-        existing.status_entity ||
-        this._findMatch(entityIds, [["status"], ["state"]]),
-      room_temp_entity:
-        existing.room_temp_entity ||
-        this._findMatch(entityIds, [["room", "temp"], ["room", "temperature"]]),
       has_water_entity:
         existing.has_water_entity ||
         this._findMatch(entityIds, [["has", "water"], ["water"]]),
-      needs_prime_entity:
-        existing.needs_prime_entity ||
-        this._findMatch(entityIds, [["needs", "prime"], ["prime"]]),
+      is_priming_entity:
+        existing.is_priming_entity ||
+        this._findMatch(entityIds, [["is", "priming"], ["priming"]]),
+      needs_priming_entity:
+        existing.needs_priming_entity ||
+        this._findMatch(entityIds, [["needs", "priming"], ["needs", "prime"]]),
       last_prime_entity:
         existing.last_prime_entity ||
         this._findMatch(entityIds, [["last", "prime"]]),
+      room_temp_entity:
+        existing.room_temp_entity ||
+        this._findMatch(entityIds, [["room", "temperature"], ["room", "temp"]]),
     };
   }
 
@@ -1444,8 +1611,8 @@ class EightSleepCardEditor extends HTMLElement {
 
       <div class="wrap">
         ${this._section(
-          "General",
-          `
+      "General",
+      `
             ${this._textField("Title", "title", this._valueAt("title"))}
             ${this._selector("Avatar mode", "avatar_mode", "avatar_mode")}
             ${this._selector("Power entity", "power_entity", "entity")}
@@ -1454,22 +1621,23 @@ class EightSleepCardEditor extends HTMLElement {
             ${this._toggle("Show compact panels", "show_compact_panels", !!this._valueAt("show_compact_panels"))}
             ${this._toggle("Show occupancy wash", "show_occupancy_wash", !!this._valueAt("show_occupancy_wash"))}
           `
-        )}
+    )}
 
         ${this._section(
-          "Top / Hub Data",
-          `
+      "Top / Hub Data",
+      `
             ${this._toggle("Show room temperature", "show_room_temp", !!this._valueAt("show_room_temp"))}
             ${this._toggle("Show bed status", "show_hub_status", !!this._valueAt("show_hub_status"))}
             ${this._toggle("Show has water", "show_has_water", !!this._valueAt("show_has_water"))}
-            ${this._toggle("Show needs prime", "show_needs_prime", !!this._valueAt("show_needs_prime"))}
+            ${this._toggle("Show needs priming", "show_needs_priming", !!this._valueAt("show_needs_priming"))}
+            ${this._toggle("Show is priming", "show_is_priming", !!this._valueAt("show_is_priming"))}
             ${this._toggle("Show last prime", "show_last_prime", !!this._valueAt("show_last_prime"))}
           `
-        )}
+    )}
 
         ${this._section(
-          "Person / Side Metrics",
-          `
+      "Person / Side Metrics",
+      `
             ${this._toggle("Show target temperature", "show_target_temp", !!this._valueAt("show_target_temp"))}
             ${this._toggle("Show bed temperature", "show_bed_temp", !!this._valueAt("show_bed_temp"))}
             ${this._toggle("Show sleep stage", "show_sleep_stage", !!this._valueAt("show_sleep_stage"))}
@@ -1482,35 +1650,35 @@ class EightSleepCardEditor extends HTMLElement {
             ${this._toggle("Show presence times", "show_presence_times", !!this._valueAt("show_presence_times"))}
             ${this._toggle("Show person location", "show_location", !!this._valueAt("show_location"))}
           `
-        )}
+    )}
 
         ${this._section(
-          "Left Side",
-          `
+      "Left Side",
+      `
             ${this._textField("Display name", "left.name", this._valueAt("left.name"))}
             ${this._selector("Left device", "left.device_id", "device")}
             ${this._selector("Left person", "left.person_entity", "person")}
             <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
           `
-        )}
+    )}
 
         ${this._section(
-          "Right Side",
-          `
+      "Right Side",
+      `
             ${this._textField("Display name", "right.name", this._valueAt("right.name"))}
             ${this._selector("Right device", "right.device_id", "device")}
             ${this._selector("Right person", "right.person_entity", "person")}
             <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
           `
-        )}
+    )}
 
         ${this._section(
-          "Whole Bed / Hub",
-          `
+      "Whole Bed / Hub",
+      `
             ${this._selector("Hub device", "hub.device_id", "device")}
-            <div class="hint">Selecting the hub device auto-fills room temp, water, prime, and status sensors when found.</div>
+            <div class="hint">Selecting the hub device auto-fills room temp, water, and priming sensors when found.</div>
           `
-        )}
+    )}
 
         ${this._loading ? `<div class="loading">Loading device registry…</div>` : ``}
       </div>
@@ -1572,6 +1740,7 @@ class EightSleepCardEditor extends HTMLElement {
   }
 }
 
+customElements.define("eight-sleep-card", EightSleepCard);
 customElements.define("eight-sleep-card-editor", EightSleepCardEditor);
 
 window.customCards = window.customCards || [];

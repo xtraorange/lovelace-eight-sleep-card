@@ -5,7 +5,8 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "build": "echo 'No build step configured yet'",
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/watch.mjs",
     "lint": "echo 'No lint step configured yet'"
   },
   "keywords": [
