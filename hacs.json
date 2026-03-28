@@ -2,6 +2,7 @@
   "name": "Eight Sleep Card",
   "content_in_root": false,
   "filename": "eight-sleep-card.js",
+  "icon": "https://brands.home-assistant.io/_/eight_sleep/icon.png",
   "render_readme": true,
   "homeassistant": "2025.1.0"
 }

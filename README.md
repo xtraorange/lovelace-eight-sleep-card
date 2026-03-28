@@ -2,12 +2,21 @@
 
 A Home Assistant Lovelace custom card for visualizing an Eight Sleep Pod with left/right sleeper data, person avatars, bed status, compact metrics, and an expanded detail view.
 
+## Requirement
+
+This card is built for the community Eight Sleep integration:
+
+- `lukas-clarke/eight_sleep`: https://github.com/lukas-clarke/eight_sleep
+
+Install and configure that integration first so the expected side/hub entities are available.
+
 ## Features
 
 - Left and right side support
 - Visual editor in Home Assistant
 - Device-based setup with auto-discovery of matching Eight Sleep entities
 - Optional person avatars using Home Assistant person entities
+- Optional theme-driven card colors (instead of the default dark styling)
 - Bed status indicator with pulsing status dot
 - Optional power button that can call a script, switch, button, or toggleable entity
 - Compact view plus expanded detail overlay

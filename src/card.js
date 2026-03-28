@@ -438,7 +438,7 @@ class EightSleepCard extends HTMLElement {
     ].join("");
 
     this.shadowRoot.innerHTML = `
-      ${getEightSleepCardStyles(this._config.tap_action_expand)}
+      ${getEightSleepCardStyles(this._config.tap_action_expand, this._config.use_theme_colors)}
       <ha-card class="clickable">
         <div class="wrap" id="main-wrap">
           <div class="header">

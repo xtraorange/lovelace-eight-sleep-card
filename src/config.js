@@ -21,6 +21,7 @@ const EIGHT_SLEEP_DEFAULT_CONFIG = {
   show_occupancy_wash: true,
   show_bed_graphic: true,
   show_compact_panels: true,
+  use_theme_colors: false,
 };
 
 function createEightSleepConfig(config = {}) {
@@ -40,4 +41,3 @@ function createEightSleepConfig(config = {}) {
     },
   };
 }
-

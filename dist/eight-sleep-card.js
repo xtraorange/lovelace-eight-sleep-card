@@ -21,6 +21,7 @@ const EIGHT_SLEEP_DEFAULT_CONFIG = {
   show_occupancy_wash: true,
   show_bed_graphic: true,
   show_compact_panels: true,
+  use_theme_colors: false,
 };
 
 function createEightSleepConfig(config = {}) {
@@ -51,7 +52,32 @@ function toEightSleepText(value, fallback = "â€”") {
   return isEightSleepMissingValue(value) ? fallback : String(value);
 }
 
-function getEightSleepCardStyles(tapActionExpand) {
+function getEightSleepCardStyles(tapActionExpand, useThemeColors = false) {
+  const cardBackground = useThemeColors
+    ? "var(--ha-card-background, var(--card-background-color, #1c1c1c))"
+    : "radial-gradient(circle at top center, rgba(255,255,255,0.05), transparent 42%), linear-gradient(180deg, #0b0b0b 0%, #030303 100%)";
+  const cardTextColor = useThemeColors
+    ? "var(--primary-text-color)"
+    : "white";
+  const borderColor = useThemeColors
+    ? "var(--divider-color, rgba(255,255,255,0.12))"
+    : "rgba(255,255,255,0.05)";
+  const insetHighlight = useThemeColors
+    ? "none"
+    : "inset 0 1px 0 rgba(255,255,255,0.04)";
+  const outerShadow = useThemeColors
+    ? "var(--ha-card-box-shadow, 0 2px 8px rgba(0,0,0,0.2))"
+    : "0 8px 30px rgba(0,0,0,0.35)";
+  const mutedText = useThemeColors
+    ? "var(--secondary-text-color)"
+    : "rgba(255,255,255,0.7)";
+  const panelBackground = useThemeColors
+    ? "color-mix(in srgb, var(--ha-card-background, #1c1c1c) 85%, var(--primary-text-color) 15%)"
+    : "rgba(255,255,255,0.03)";
+  const panelBorder = useThemeColors
+    ? "var(--divider-color, rgba(255,255,255,0.12))"
+    : "rgba(255,255,255,0.05)";
+
   return `
       <style>
         :host {
@@ -59,16 +85,12 @@ function getEightSleepCardStyles(tapActionExpand) {
         }
 
         ha-card {
-          background:
-            radial-gradient(circle at top center, rgba(255,255,255,0.05), transparent 42%),
-            linear-gradient(180deg, #0b0b0b 0%, #030303 100%);
-          color: white;
+          background: ${cardBackground};
+          color: ${cardTextColor};
           border-radius: 24px;
           overflow: hidden;
-          border: 1px solid rgba(255,255,255,0.05);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.04),
-            0 8px 30px rgba(0,0,0,0.35);
+          border: 1px solid ${borderColor};
+          box-shadow: ${insetHighlight}, ${outerShadow};
           position: relative;
         }
 
@@ -98,13 +120,13 @@ function getEightSleepCardStyles(tapActionExpand) {
         .title {
           font-size: 15px;
           font-weight: 700;
-          color: rgba(255,255,255,0.94);
+          color: var(--primary-text-color, rgba(255,255,255,0.94));
           letter-spacing: 0.2px;
         }
 
         .room-temp {
           font-size: 12px;
-          color: rgba(255,255,255,0.7);
+          color: ${mutedText};
           white-space: nowrap;
         }
 
@@ -120,10 +142,10 @@ function getEightSleepCardStyles(tapActionExpand) {
           gap: 8px;
           padding: 6px 10px;
           border-radius: 999px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.06);
+          background: ${panelBackground};
+          border: 1px solid ${panelBorder};
           font-size: 11px;
-          color: rgba(255,255,255,0.72);
+          color: ${mutedText};
           white-space: nowrap;
         }
 
@@ -144,9 +166,9 @@ function getEightSleepCardStyles(tapActionExpand) {
           width: 34px;
           height: 34px;
           border-radius: 50%;
-          border: 1px solid rgba(255,255,255,0.1);
-          background: rgba(255,255,255,0.04);
-          color: white;
+          border: 1px solid ${panelBorder};
+          background: ${panelBackground};
+          color: var(--primary-text-color, white);
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -156,7 +178,7 @@ function getEightSleepCardStyles(tapActionExpand) {
 
         .power-button:hover,
         .close-button:hover {
-          background: rgba(255,255,255,0.08);
+          background: color-mix(in srgb, ${panelBackground} 75%, var(--primary-text-color, #fff) 25%);
         }
 
         .bed-wrap {
@@ -180,8 +202,8 @@ function getEightSleepCardStyles(tapActionExpand) {
         }
 
         .panel {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.05);
+          background: ${panelBackground};
+          border: 1px solid ${panelBorder};
           border-radius: 18px;
           padding: 12px;
           min-width: 0;
@@ -202,7 +224,7 @@ function getEightSleepCardStyles(tapActionExpand) {
         .name {
           font-size: 13px;
           font-weight: 700;
-          color: rgba(255,255,255,0.95);
+          color: var(--primary-text-color, rgba(255,255,255,0.95));
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -210,7 +232,7 @@ function getEightSleepCardStyles(tapActionExpand) {
 
         .location {
           font-size: 11px;
-          color: rgba(255,255,255,0.56);
+          color: ${mutedText};
           margin-top: 2px;
           text-transform: capitalize;
           overflow: hidden;
@@ -234,7 +256,7 @@ function getEightSleepCardStyles(tapActionExpand) {
 
         .mode {
           font-size: 12px;
-          color: rgba(255,255,255,0.68);
+          color: ${mutedText};
           margin-bottom: 10px;
         }
 
@@ -246,13 +268,13 @@ function getEightSleepCardStyles(tapActionExpand) {
 
         .meta-item {
           font-size: 11px;
-          color: rgba(255,255,255,0.56);
+          color: ${mutedText};
         }
 
         .meta-item strong {
           display: block;
           margin-top: 2px;
-          color: rgba(255,255,255,0.88);
+          color: var(--primary-text-color, rgba(255,255,255,0.88));
           font-size: 12px;
           font-weight: 600;
           overflow: hidden;
@@ -266,12 +288,12 @@ function getEightSleepCardStyles(tapActionExpand) {
 
         .metric-label {
           font-size: 11px;
-          color: rgba(255,255,255,0.56);
+          color: ${mutedText};
         }
 
         .metric-value {
           margin-top: 2px;
-          color: rgba(255,255,255,0.9);
+          color: var(--primary-text-color, rgba(255,255,255,0.9));
           font-size: 12px;
           font-weight: 600;
           overflow: hidden;
@@ -317,8 +339,8 @@ function getEightSleepCardStyles(tapActionExpand) {
         }
 
         .expanded-section {
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.06);
+          background: ${panelBackground};
+          border: 1px solid ${panelBorder};
           border-radius: 18px;
           padding: 14px;
         }
@@ -327,7 +349,7 @@ function getEightSleepCardStyles(tapActionExpand) {
           font-size: 13px;
           font-weight: 700;
           margin-bottom: 10px;
-          color: rgba(255,255,255,0.93);
+          color: var(--primary-text-color, rgba(255,255,255,0.93));
         }
 
         .expanded-grid {
@@ -1191,7 +1213,7 @@ class EightSleepCard extends HTMLElement {
     ].join("");
 
     this.shadowRoot.innerHTML = `
-      ${getEightSleepCardStyles(this._config.tap_action_expand)}
+      ${getEightSleepCardStyles(this._config.tap_action_expand, this._config.use_theme_colors)}
       <ha-card class="clickable">
         <div class="wrap" id="main-wrap">
           <div class="header">
@@ -1377,43 +1399,48 @@ class EightSleepCardEditor extends HTMLElement {
       ...existing,
       presence_entity:
         existing.presence_entity ||
-        this._findMatch(entityIds, [["bed", "presence"], ["presence"]]),
+        this._findMatch(entityIds, [["bed", "presence"], ["bed_presence"], ["presence"]]),
       bed_state_entity:
         existing.bed_state_entity ||
-        this._findMatch(entityIds, [["bed", "state"]]),
+        this._findMatch(entityIds, [["bed", "state"], ["bed_state"]]),
       bed_state_type_entity:
         existing.bed_state_type_entity ||
-        this._findMatch(entityIds, [["bed", "state", "type"], ["state", "type"]]),
+        this._findMatch(entityIds, [["bed", "state", "type"], ["bed_state_type"], ["state", "type"]]),
       target_temp_entity:
         existing.target_temp_entity ||
-        this._findMatch(entityIds, [["target", "temperature"], ["target", "temp"]]),
+        this._findMatch(entityIds, [
+          ["target", "heating", "temp"],
+          ["target", "heating", "temperature"],
+          ["target", "temperature"],
+          ["target", "temp"],
+        ]),
       bed_temp_entity:
         existing.bed_temp_entity ||
-        this._findMatch(entityIds, [["bed", "temperature"], ["bed", "temp"]]),
+        this._findMatch(entityIds, [["bed", "temperature"], ["bed", "temp"], ["current", "bed", "temp"]]),
       sleep_stage_entity:
         existing.sleep_stage_entity ||
-        this._findMatch(entityIds, [["sleep", "stage"], ["stage"]]),
+        this._findMatch(entityIds, [["current", "sleep", "stage"], ["sleep", "stage"], ["stage"]]),
       heart_rate_entity:
         existing.heart_rate_entity ||
-        this._findMatch(entityIds, [["heart", "rate"], ["heartrate"]]),
+        this._findMatch(entityIds, [["current", "heart", "rate"], ["heart", "rate"], ["heartrate"]]),
       breath_rate_entity:
         existing.breath_rate_entity ||
-        this._findMatch(entityIds, [["breath", "rate"], ["breathrate"]]),
+        this._findMatch(entityIds, [["current", "breath", "rate"], ["breath", "rate"], ["breathrate"], ["resp", "rate"]]),
       hrv_entity:
         existing.hrv_entity ||
-        this._findMatch(entityIds, [["hrv"]]),
+        this._findMatch(entityIds, [["current", "hrv"], ["hrv"]]),
       time_slept_entity:
         existing.time_slept_entity ||
         this._findMatch(entityIds, [["time", "slept"], ["slept"]]),
       sleep_fitness_score_entity:
         existing.sleep_fitness_score_entity ||
-        this._findMatch(entityIds, [["sleep", "fitness", "score"], ["fitness", "score"]]),
+        this._findMatch(entityIds, [["current", "sleep", "fitness", "score"], ["sleep", "fitness", "score"], ["fitness", "score"]]),
       sleep_quality_score_entity:
         existing.sleep_quality_score_entity ||
-        this._findMatch(entityIds, [["sleep", "quality", "score"], ["quality", "score"]]),
+        this._findMatch(entityIds, [["current", "sleep", "quality", "score"], ["sleep", "quality", "score"], ["quality", "score"]]),
       routine_score_entity:
         existing.routine_score_entity ||
-        this._findMatch(entityIds, [["routine", "score"]]),
+        this._findMatch(entityIds, [["current", "sleep", "routine", "score"], ["routine", "score"]]),
       next_alarm_entity:
         existing.next_alarm_entity ||
         this._findMatch(entityIds, [["next", "alarm"], ["alarm"]]),
@@ -1436,19 +1463,19 @@ class EightSleepCardEditor extends HTMLElement {
       ...existing,
       has_water_entity:
         existing.has_water_entity ||
-        this._findMatch(entityIds, [["has", "water"], ["water"]]),
+        this._findMatch(entityIds, [["has", "water"], ["has_water"], ["water"]]),
       is_priming_entity:
         existing.is_priming_entity ||
-        this._findMatch(entityIds, [["is", "priming"], ["priming"]]),
+        this._findMatch(entityIds, [["is", "priming"], ["is_priming"], ["priming"]]),
       needs_priming_entity:
         existing.needs_priming_entity ||
-        this._findMatch(entityIds, [["needs", "priming"], ["needs", "prime"]]),
+        this._findMatch(entityIds, [["needs", "priming"], ["needs", "prime"], ["need", "priming"], ["need_priming"]]),
       last_prime_entity:
         existing.last_prime_entity ||
-        this._findMatch(entityIds, [["last", "prime"]]),
+        this._findMatch(entityIds, [["last", "prime"], ["last_prime"]]),
       room_temp_entity:
         existing.room_temp_entity ||
-        this._findMatch(entityIds, [["room", "temperature"], ["room", "temp"]]),
+        this._findMatch(entityIds, [["room", "temperature"], ["room", "temp"], ["room_temperature"]]),
     };
   }
 
@@ -1617,6 +1644,7 @@ class EightSleepCardEditor extends HTMLElement {
             ${this._selector("Avatar mode", "avatar_mode", "avatar_mode")}
             ${this._selector("Power entity", "power_entity", "entity")}
             ${this._toggle("Tap card to expand", "tap_action_expand", !!this._valueAt("tap_action_expand"))}
+            ${this._toggle("Use theme colors", "use_theme_colors", !!this._valueAt("use_theme_colors"))}
             ${this._toggle("Show bed graphic", "show_bed_graphic", !!this._valueAt("show_bed_graphic"))}
             ${this._toggle("Show compact panels", "show_compact_panels", !!this._valueAt("show_compact_panels"))}
             ${this._toggle("Show occupancy wash", "show_occupancy_wash", !!this._valueAt("show_occupancy_wash"))}

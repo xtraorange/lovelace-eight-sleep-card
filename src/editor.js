@@ -126,43 +126,48 @@ class EightSleepCardEditor extends HTMLElement {
       ...existing,
       presence_entity:
         existing.presence_entity ||
-        this._findMatch(entityIds, [["bed", "presence"], ["presence"]]),
+        this._findMatch(entityIds, [["bed", "presence"], ["bed_presence"], ["presence"]]),
       bed_state_entity:
         existing.bed_state_entity ||
-        this._findMatch(entityIds, [["bed", "state"]]),
+        this._findMatch(entityIds, [["bed", "state"], ["bed_state"]]),
       bed_state_type_entity:
         existing.bed_state_type_entity ||
-        this._findMatch(entityIds, [["bed", "state", "type"], ["state", "type"]]),
+        this._findMatch(entityIds, [["bed", "state", "type"], ["bed_state_type"], ["state", "type"]]),
       target_temp_entity:
         existing.target_temp_entity ||
-        this._findMatch(entityIds, [["target", "temperature"], ["target", "temp"]]),
+        this._findMatch(entityIds, [
+          ["target", "heating", "temp"],
+          ["target", "heating", "temperature"],
+          ["target", "temperature"],
+          ["target", "temp"],
+        ]),
       bed_temp_entity:
         existing.bed_temp_entity ||
-        this._findMatch(entityIds, [["bed", "temperature"], ["bed", "temp"]]),
+        this._findMatch(entityIds, [["bed", "temperature"], ["bed", "temp"], ["current", "bed", "temp"]]),
       sleep_stage_entity:
         existing.sleep_stage_entity ||
-        this._findMatch(entityIds, [["sleep", "stage"], ["stage"]]),
+        this._findMatch(entityIds, [["current", "sleep", "stage"], ["sleep", "stage"], ["stage"]]),
       heart_rate_entity:
         existing.heart_rate_entity ||
-        this._findMatch(entityIds, [["heart", "rate"], ["heartrate"]]),
+        this._findMatch(entityIds, [["current", "heart", "rate"], ["heart", "rate"], ["heartrate"]]),
       breath_rate_entity:
         existing.breath_rate_entity ||
-        this._findMatch(entityIds, [["breath", "rate"], ["breathrate"]]),
+        this._findMatch(entityIds, [["current", "breath", "rate"], ["breath", "rate"], ["breathrate"], ["resp", "rate"]]),
       hrv_entity:
         existing.hrv_entity ||
-        this._findMatch(entityIds, [["hrv"]]),
+        this._findMatch(entityIds, [["current", "hrv"], ["hrv"]]),
       time_slept_entity:
         existing.time_slept_entity ||
         this._findMatch(entityIds, [["time", "slept"], ["slept"]]),
       sleep_fitness_score_entity:
         existing.sleep_fitness_score_entity ||
-        this._findMatch(entityIds, [["sleep", "fitness", "score"], ["fitness", "score"]]),
+        this._findMatch(entityIds, [["current", "sleep", "fitness", "score"], ["sleep", "fitness", "score"], ["fitness", "score"]]),
       sleep_quality_score_entity:
         existing.sleep_quality_score_entity ||
-        this._findMatch(entityIds, [["sleep", "quality", "score"], ["quality", "score"]]),
+        this._findMatch(entityIds, [["current", "sleep", "quality", "score"], ["sleep", "quality", "score"], ["quality", "score"]]),
       routine_score_entity:
         existing.routine_score_entity ||
-        this._findMatch(entityIds, [["routine", "score"]]),
+        this._findMatch(entityIds, [["current", "sleep", "routine", "score"], ["routine", "score"]]),
       next_alarm_entity:
         existing.next_alarm_entity ||
         this._findMatch(entityIds, [["next", "alarm"], ["alarm"]]),
@@ -185,19 +190,19 @@ class EightSleepCardEditor extends HTMLElement {
       ...existing,
       has_water_entity:
         existing.has_water_entity ||
-        this._findMatch(entityIds, [["has", "water"], ["water"]]),
+        this._findMatch(entityIds, [["has", "water"], ["has_water"], ["water"]]),
       is_priming_entity:
         existing.is_priming_entity ||
-        this._findMatch(entityIds, [["is", "priming"], ["priming"]]),
+        this._findMatch(entityIds, [["is", "priming"], ["is_priming"], ["priming"]]),
       needs_priming_entity:
         existing.needs_priming_entity ||
-        this._findMatch(entityIds, [["needs", "priming"], ["needs", "prime"]]),
+        this._findMatch(entityIds, [["needs", "priming"], ["needs", "prime"], ["need", "priming"], ["need_priming"]]),
       last_prime_entity:
         existing.last_prime_entity ||
-        this._findMatch(entityIds, [["last", "prime"]]),
+        this._findMatch(entityIds, [["last", "prime"], ["last_prime"]]),
       room_temp_entity:
         existing.room_temp_entity ||
-        this._findMatch(entityIds, [["room", "temperature"], ["room", "temp"]]),
+        this._findMatch(entityIds, [["room", "temperature"], ["room", "temp"], ["room_temperature"]]),
     };
   }
 
@@ -366,6 +371,7 @@ class EightSleepCardEditor extends HTMLElement {
             ${this._selector("Avatar mode", "avatar_mode", "avatar_mode")}
             ${this._selector("Power entity", "power_entity", "entity")}
             ${this._toggle("Tap card to expand", "tap_action_expand", !!this._valueAt("tap_action_expand"))}
+            ${this._toggle("Use theme colors", "use_theme_colors", !!this._valueAt("use_theme_colors"))}
             ${this._toggle("Show bed graphic", "show_bed_graphic", !!this._valueAt("show_bed_graphic"))}
             ${this._toggle("Show compact panels", "show_compact_panels", !!this._valueAt("show_compact_panels"))}
             ${this._toggle("Show occupancy wash", "show_occupancy_wash", !!this._valueAt("show_occupancy_wash"))}
