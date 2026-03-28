@@ -8,6 +8,7 @@ class EightSleepCardEditor extends HTMLElement {
     this._entityRegistry = [];
     this._loading = false;
     this._loaded = false;
+    this._didInitialRender = false;
   }
 
   setConfig(config) {
@@ -18,7 +19,9 @@ class EightSleepCardEditor extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     this._loadRegistries();
-    this._render();
+    if (!this._didInitialRender) {
+      this._render();
+    }
   }
 
   async _loadRegistries() {
@@ -143,7 +146,7 @@ class EightSleepCardEditor extends HTMLElement {
         ]),
       bed_temp_entity:
         existing.bed_temp_entity ||
-        this._findMatch(entityIds, [["bed", "temperature"], ["bed", "temp"], ["current", "bed", "temp"]]),
+        this._findMatch(entityIds, [["bed", "temperature"], ["bed", "temp"], ["current", "bed", "temp"], ["current", "heating", "temp"]]),
       sleep_stage_entity:
         existing.sleep_stage_entity ||
         this._findMatch(entityIds, [["current", "sleep", "stage"], ["sleep", "stage"], ["stage"]]),
@@ -152,10 +155,10 @@ class EightSleepCardEditor extends HTMLElement {
         this._findMatch(entityIds, [["current", "heart", "rate"], ["heart", "rate"], ["heartrate"]]),
       breath_rate_entity:
         existing.breath_rate_entity ||
-        this._findMatch(entityIds, [["current", "breath", "rate"], ["breath", "rate"], ["breathrate"], ["resp", "rate"]]),
+        this._findMatch(entityIds, [["current", "breath", "rate"], ["current", "resp", "rate"], ["respiratory", "rate"], ["breath", "rate"], ["breathrate"], ["resp", "rate"]]),
       hrv_entity:
         existing.hrv_entity ||
-        this._findMatch(entityIds, [["current", "hrv"], ["hrv"]]),
+        this._findMatch(entityIds, [["current", "hrv"], ["heart", "rate", "variability"], ["hrv"]]),
       time_slept_entity:
         existing.time_slept_entity ||
         this._findMatch(entityIds, [["time", "slept"], ["slept"]]),
@@ -274,6 +277,37 @@ class EightSleepCardEditor extends HTMLElement {
     `;
   }
 
+  _sideEntityFields(sideKey) {
+    return `
+      ${this._selector("Presence entity", `${sideKey}.presence_entity`, "entity")}
+      ${this._selector("Bed state entity", `${sideKey}.bed_state_entity`, "entity")}
+      ${this._selector("Bed state type entity", `${sideKey}.bed_state_type_entity`, "entity")}
+      ${this._selector("Target temp entity", `${sideKey}.target_temp_entity`, "entity")}
+      ${this._selector("Bed temp entity", `${sideKey}.bed_temp_entity`, "entity")}
+      ${this._selector("Sleep stage entity", `${sideKey}.sleep_stage_entity`, "entity")}
+      ${this._selector("Heart rate entity", `${sideKey}.heart_rate_entity`, "entity")}
+      ${this._selector("Breath rate entity", `${sideKey}.breath_rate_entity`, "entity")}
+      ${this._selector("HRV entity", `${sideKey}.hrv_entity`, "entity")}
+      ${this._selector("Time slept entity", `${sideKey}.time_slept_entity`, "entity")}
+      ${this._selector("Fitness score entity", `${sideKey}.sleep_fitness_score_entity`, "entity")}
+      ${this._selector("Quality score entity", `${sideKey}.sleep_quality_score_entity`, "entity")}
+      ${this._selector("Routine score entity", `${sideKey}.routine_score_entity`, "entity")}
+      ${this._selector("Next alarm entity", `${sideKey}.next_alarm_entity`, "entity")}
+      ${this._selector("Presence start entity", `${sideKey}.presence_start_entity`, "entity")}
+      ${this._selector("Presence end entity", `${sideKey}.presence_end_entity`, "entity")}
+    `;
+  }
+
+  _hubEntityFields() {
+    return `
+      ${this._selector("Room temp entity", "hub.room_temp_entity", "entity")}
+      ${this._selector("Has water entity", "hub.has_water_entity", "entity")}
+      ${this._selector("Needs priming entity", "hub.needs_priming_entity", "entity")}
+      ${this._selector("Is priming entity", "hub.is_priming_entity", "entity")}
+      ${this._selector("Last prime entity", "hub.last_prime_entity", "entity")}
+    `;
+  }
+
   _section(title, body) {
     return `
       <div class="section">
@@ -372,6 +406,8 @@ class EightSleepCardEditor extends HTMLElement {
             ${this._selector("Power entity", "power_entity", "entity")}
             ${this._toggle("Tap card to expand", "tap_action_expand", !!this._valueAt("tap_action_expand"))}
             ${this._toggle("Use theme colors", "use_theme_colors", !!this._valueAt("use_theme_colors"))}
+            ${this._toggle("Show icons on main card", "show_icons_main", !!this._valueAt("show_icons_main"))}
+            ${this._toggle("Show icons on overview", "show_icons_overview", !!this._valueAt("show_icons_overview"))}
             ${this._toggle("Show bed graphic", "show_bed_graphic", !!this._valueAt("show_bed_graphic"))}
             ${this._toggle("Show compact panels", "show_compact_panels", !!this._valueAt("show_compact_panels"))}
             ${this._toggle("Show occupancy wash", "show_occupancy_wash", !!this._valueAt("show_occupancy_wash"))}
@@ -382,11 +418,17 @@ class EightSleepCardEditor extends HTMLElement {
       "Top / Hub Data",
       `
             ${this._toggle("Show room temperature", "show_room_temp", !!this._valueAt("show_room_temp"))}
+            ${this._toggle("Show room temperature (overview)", "show_room_temp_overview", !!this._valueAt("show_room_temp_overview"))}
             ${this._toggle("Show bed status", "show_hub_status", !!this._valueAt("show_hub_status"))}
+            ${this._toggle("Show bed status (overview)", "show_hub_status_overview", !!this._valueAt("show_hub_status_overview"))}
             ${this._toggle("Show has water", "show_has_water", !!this._valueAt("show_has_water"))}
+            ${this._toggle("Show has water (overview)", "show_has_water_overview", !!this._valueAt("show_has_water_overview"))}
             ${this._toggle("Show needs priming", "show_needs_priming", !!this._valueAt("show_needs_priming"))}
+            ${this._toggle("Show needs priming (overview)", "show_needs_priming_overview", !!this._valueAt("show_needs_priming_overview"))}
             ${this._toggle("Show is priming", "show_is_priming", !!this._valueAt("show_is_priming"))}
+            ${this._toggle("Show is priming (overview)", "show_is_priming_overview", !!this._valueAt("show_is_priming_overview"))}
             ${this._toggle("Show last prime", "show_last_prime", !!this._valueAt("show_last_prime"))}
+            ${this._toggle("Show last prime (overview)", "show_last_prime_overview", !!this._valueAt("show_last_prime_overview"))}
           `
     )}
 
@@ -394,16 +436,27 @@ class EightSleepCardEditor extends HTMLElement {
       "Person / Side Metrics",
       `
             ${this._toggle("Show target temperature", "show_target_temp", !!this._valueAt("show_target_temp"))}
+            ${this._toggle("Show target temperature (overview)", "show_target_temp_overview", !!this._valueAt("show_target_temp_overview"))}
             ${this._toggle("Show bed temperature", "show_bed_temp", !!this._valueAt("show_bed_temp"))}
+            ${this._toggle("Show bed temperature (overview)", "show_bed_temp_overview", !!this._valueAt("show_bed_temp_overview"))}
             ${this._toggle("Show sleep stage", "show_sleep_stage", !!this._valueAt("show_sleep_stage"))}
+            ${this._toggle("Show sleep stage (overview)", "show_sleep_stage_overview", !!this._valueAt("show_sleep_stage_overview"))}
             ${this._toggle("Show time slept", "show_time_slept", !!this._valueAt("show_time_slept"))}
+            ${this._toggle("Show time slept (overview)", "show_time_slept_overview", !!this._valueAt("show_time_slept_overview"))}
             ${this._toggle("Show heart rate", "show_heart_rate", !!this._valueAt("show_heart_rate"))}
+            ${this._toggle("Show heart rate (overview)", "show_heart_rate_overview", !!this._valueAt("show_heart_rate_overview"))}
             ${this._toggle("Show breath rate", "show_breath_rate", !!this._valueAt("show_breath_rate"))}
+            ${this._toggle("Show breath rate (overview)", "show_breath_rate_overview", !!this._valueAt("show_breath_rate_overview"))}
             ${this._toggle("Show HRV", "show_hrv", !!this._valueAt("show_hrv"))}
+            ${this._toggle("Show HRV (overview)", "show_hrv_overview", !!this._valueAt("show_hrv_overview"))}
             ${this._toggle("Show sleep scores", "show_scores", !!this._valueAt("show_scores"))}
+            ${this._toggle("Show sleep scores (overview)", "show_scores_overview", !!this._valueAt("show_scores_overview"))}
             ${this._toggle("Show next alarm", "show_next_alarm", !!this._valueAt("show_next_alarm"))}
+            ${this._toggle("Show next alarm (overview)", "show_next_alarm_overview", !!this._valueAt("show_next_alarm_overview"))}
             ${this._toggle("Show presence times", "show_presence_times", !!this._valueAt("show_presence_times"))}
+            ${this._toggle("Show presence times (overview)", "show_presence_times_overview", !!this._valueAt("show_presence_times_overview"))}
             ${this._toggle("Show person location", "show_location", !!this._valueAt("show_location"))}
+            ${this._toggle("Show person location (overview)", "show_location_overview", !!this._valueAt("show_location_overview"))}
           `
     )}
 
@@ -413,6 +466,7 @@ class EightSleepCardEditor extends HTMLElement {
             ${this._textField("Display name", "left.name", this._valueAt("left.name"))}
             ${this._selector("Left device", "left.device_id", "device")}
             ${this._selector("Left person", "left.person_entity", "person")}
+            ${this._sideEntityFields("left")}
             <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
           `
     )}
@@ -423,6 +477,7 @@ class EightSleepCardEditor extends HTMLElement {
             ${this._textField("Display name", "right.name", this._valueAt("right.name"))}
             ${this._selector("Right device", "right.device_id", "device")}
             ${this._selector("Right person", "right.person_entity", "person")}
+            ${this._sideEntityFields("right")}
             <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
           `
     )}
@@ -431,6 +486,7 @@ class EightSleepCardEditor extends HTMLElement {
       "Whole Bed / Hub",
       `
             ${this._selector("Hub device", "hub.device_id", "device")}
+            ${this._hubEntityFields()}
             <div class="hint">Selecting the hub device auto-fills room temp, water, and priming sensors when found.</div>
           `
     )}
@@ -492,5 +548,6 @@ class EightSleepCardEditor extends HTMLElement {
         }
       });
     });
+    this._didInitialRender = true;
   }
 }

@@ -200,6 +200,12 @@ function getEightSleepCardStyles(tapActionExpand, useThemeColors = false) {
           margin-bottom: 4px;
         }
 
+        .big-secondary {
+          font-size: 20px;
+          opacity: 0.92;
+          margin-bottom: 6px;
+        }
+
         .mode {
           font-size: 12px;
           color: ${mutedText};
@@ -282,6 +288,7 @@ function getEightSleepCardStyles(tapActionExpand, useThemeColors = false) {
         .expanded-layout {
           display: grid;
           gap: 14px;
+          margin-top: 14px;
         }
 
         .expanded-section {

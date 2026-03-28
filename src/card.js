@@ -234,11 +234,11 @@ class EightSleepCard extends HTMLElement {
       return { label: "Priming", color: "#8b5cf6" };
     }
 
-    if (hasWater) {
-      return { label: "Online", color: "#22c55e" };
+    if (!hasWater) {
+      return { label: "Needs Water", color: "#ef4444" };
     }
 
-    return { label: "Offline", color: "#6b7280" };
+    return { label: "Ready", color: "#22c55e" };
   }
 
   _buildSide(sideConfig) {
@@ -390,52 +390,14 @@ class EightSleepCard extends HTMLElement {
     const showRoomTemp = this._config.show_room_temp && this._config.hub?.room_temp_entity;
     const showPower = !!this._config.power_entity;
 
-    const expandedLeft = [
-      this._metric("Target Temperature", left.targetTemp, "🎯"),
-      this._metric("Bed Temperature", left.bedTemp, "🛏️"),
-      this._metric("Sleep Stage", left.sleepStage, "🌙"),
-      this._metric("Time Slept", left.timeSlept, "⏱️"),
-      this._metric("Heart Rate", left.heartRate, "❤️"),
-      this._metric("Breath Rate", left.breathRate, "🫁"),
-      this._metric("HRV", left.hrv, "📈"),
-      this._metric("Fitness Score", left.fitnessScore, "💪"),
-      this._metric("Quality Score", left.qualityScore, "⭐"),
-      this._metric("Routine Score", left.routineScore, "🗓️"),
-      this._metric("Next Alarm", left.nextAlarm, "⏰"),
-      this._metric("Presence Start", left.presenceStart, "➡️"),
-      this._metric("Presence End", left.presenceEnd, "⬅️"),
-      this._metric("Location", left.personState, "📍"),
-      this._metric("Occupied", left.occupied ? "Yes" : "No", "🧍"),
-      this._metric("Mode", left.modeLabel, "🔆"),
-    ].join("");
-
-    const expandedRight = [
-      this._metric("Target Temperature", right.targetTemp, "🎯"),
-      this._metric("Bed Temperature", right.bedTemp, "🛏️"),
-      this._metric("Sleep Stage", right.sleepStage, "🌙"),
-      this._metric("Time Slept", right.timeSlept, "⏱️"),
-      this._metric("Heart Rate", right.heartRate, "❤️"),
-      this._metric("Breath Rate", right.breathRate, "🫁"),
-      this._metric("HRV", right.hrv, "📈"),
-      this._metric("Fitness Score", right.fitnessScore, "💪"),
-      this._metric("Quality Score", right.qualityScore, "⭐"),
-      this._metric("Routine Score", right.routineScore, "🗓️"),
-      this._metric("Next Alarm", right.nextAlarm, "⏰"),
-      this._metric("Presence Start", right.presenceStart, "➡️"),
-      this._metric("Presence End", right.presenceEnd, "⬅️"),
-      this._metric("Location", right.personState, "📍"),
-      this._metric("Occupied", right.occupied ? "Yes" : "No", "🧍"),
-      this._metric("Mode", right.modeLabel, "🔆"),
-    ].join("");
-
-    const expandedHub = [
-      this._metric("Bed Status", status.label, "🟢"),
-      this._metric("Room Temperature", roomTemp, "🌡️"),
-      this._metric("Has Water", hasWater ? "Yes" : "No", "💧"),
-      this._metric("Is Priming", isPriming ? "Yes" : "No", "🔄"),
-      this._metric("Needs Priming", needsPriming ? "Yes" : "No", "⚠️"),
-      this._metric("Last Prime", lastPrime, "🕒"),
-    ].join("");
+    const hub = {
+      status,
+      roomTemp,
+      hasWater,
+      isPriming,
+      needsPriming,
+      lastPrime,
+    };
 
     this.shadowRoot.innerHTML = `
       ${getEightSleepCardStyles(this._config.tap_action_expand, this._config.use_theme_colors)}
@@ -467,10 +429,10 @@ class EightSleepCard extends HTMLElement {
 
           ${renderEightSleepBedGraphic(this, left, right)}
 
-          ${renderEightSleepCompactPanels(this, left, right)}
+          ${renderEightSleepCompactPanels(this, left, right, hub)}
         </div>
 
-        ${renderEightSleepExpandedOverlay(this, left, right, expandedLeft, expandedRight, expandedHub)}
+        ${renderEightSleepExpandedOverlay(this, left, right, hub)}
       </ha-card>
     `;
 
@@ -495,6 +457,7 @@ class EightSleepCard extends HTMLElement {
     }
   }
 }
+
 
 
 

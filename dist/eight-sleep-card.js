@@ -10,18 +10,36 @@ const EIGHT_SLEEP_DEFAULT_CONFIG = {
   show_last_prime: false,
   show_bed_temp: true,
   show_target_temp: true,
+  show_target_temp_overview: true,
   show_sleep_stage: true,
+  show_sleep_stage_overview: true,
   show_time_slept: true,
+  show_time_slept_overview: true,
   show_heart_rate: true,
+  show_heart_rate_overview: true,
   show_breath_rate: false,
+  show_breath_rate_overview: false,
   show_hrv: false,
+  show_hrv_overview: false,
   show_scores: false,
+  show_scores_overview: false,
   show_next_alarm: false,
+  show_next_alarm_overview: false,
   show_presence_times: false,
+  show_presence_times_overview: false,
+  show_bed_temp_overview: true,
+  show_location_overview: true,
+  show_hub_status_overview: true,
+  show_has_water_overview: true,
+  show_needs_priming_overview: true,
+  show_is_priming_overview: false,
+  show_last_prime_overview: false,
   show_occupancy_wash: true,
   show_bed_graphic: true,
   show_compact_panels: true,
   use_theme_colors: false,
+  show_icons_main: false,
+  show_icons_overview: false,
 };
 
 function createEightSleepConfig(config = {}) {
@@ -254,6 +272,12 @@ function getEightSleepCardStyles(tapActionExpand, useThemeColors = false) {
           margin-bottom: 4px;
         }
 
+        .big-secondary {
+          font-size: 20px;
+          opacity: 0.92;
+          margin-bottom: 6px;
+        }
+
         .mode {
           font-size: 12px;
           color: ${mutedText};
@@ -336,6 +360,7 @@ function getEightSleepCardStyles(tapActionExpand, useThemeColors = false) {
         .expanded-layout {
           display: grid;
           gap: 14px;
+          margin-top: 14px;
         }
 
         .expanded-section {
@@ -386,6 +411,99 @@ function getEightSleepCardStyles(tapActionExpand, useThemeColors = false) {
   `;
 }
 
+function panelFlag(card, key, view) {
+  if (view === "overview") {
+    const overrideKey = `${key}_overview`;
+    if (overrideKey in card._config) return !!card._config[overrideKey];
+  }
+  return !!card._config[key];
+}
+
+function panelIcon(card, view, key) {
+  const enabled = view === "overview" ? card._config.show_icons_overview : card._config.show_icons_main;
+  if (!enabled) return "";
+  return `${key} `;
+}
+
+function panelItem(card, view, label, value, icon) {
+  return `<div class="meta-item">${panelIcon(card, view, icon)}${label}<strong>${value}</strong></div>`;
+}
+
+function renderEightSleepSidePanel(card, side, view) {
+  const showTarget = panelFlag(card, "show_target_temp", view);
+  const showBed = panelFlag(card, "show_bed_temp", view);
+  const showStage = panelFlag(card, "show_sleep_stage", view);
+  const showSlept = panelFlag(card, "show_time_slept", view);
+  const showHeart = panelFlag(card, "show_heart_rate", view);
+  const showBreath = panelFlag(card, "show_breath_rate", view);
+  const showHrv = panelFlag(card, "show_hrv", view);
+  const showScores = panelFlag(card, "show_scores", view);
+  const showAlarm = panelFlag(card, "show_next_alarm", view);
+  const showPresenceTimes = panelFlag(card, "show_presence_times", view);
+  const showLocation = panelFlag(card, "show_location", view);
+
+  return `
+    <div class="panel">
+      <div class="panel-head">
+        <div class="name-wrap">
+          <div class="name">${side.name}</div>
+          ${showLocation ? `<div class="location">${side.personState}</div>` : ``}
+        </div>
+        <div class="mode-badge" style="background:${side.color}; box-shadow: 0 0 12px ${side.color};"></div>
+      </div>
+
+      ${showTarget ? `<div class="big">${side.targetTemp}</div>` : ``}
+      ${showBed ? `<div class="big big-secondary">${side.bedTemp}</div>` : ``}
+      <div class="mode">${panelIcon(card, view, "🔆")}${side.modeLabel}</div>
+
+      <div class="meta">
+        ${panelItem(card, view, "Occupied", side.occupied ? "Yes" : "No", "🛌")}
+        ${showStage ? panelItem(card, view, "Stage", side.sleepStage, "🌙") : ``}
+        ${showSlept ? panelItem(card, view, "Slept", side.timeSlept, "⏱️") : ``}
+        ${showHeart ? panelItem(card, view, "Heart Rate", side.heartRate, "❤️") : ``}
+        ${showBreath ? panelItem(card, view, "Breath Rate", side.breathRate, "🫁") : ``}
+        ${showHrv ? panelItem(card, view, "HRV", side.hrv, "📈") : ``}
+        ${showScores ? panelItem(card, view, "Fitness", side.fitnessScore, "💪") : ``}
+        ${showScores ? panelItem(card, view, "Quality", side.qualityScore, "⭐") : ``}
+        ${showScores ? panelItem(card, view, "Routine", side.routineScore, "🗓️") : ``}
+        ${showAlarm ? panelItem(card, view, "Alarm", side.nextAlarm, "⏰") : ``}
+        ${showPresenceTimes ? panelItem(card, view, "In Bed", side.presenceStart, "➡️") : ``}
+        ${showPresenceTimes ? panelItem(card, view, "Out of Bed", side.presenceEnd, "⬅️") : ``}
+      </div>
+    </div>
+  `;
+}
+
+function renderEightSleepHubPanel(card, hub, view) {
+  const showHubStatus = panelFlag(card, "show_hub_status", view);
+  const showRoomTemp = panelFlag(card, "show_room_temp", view);
+  const showHasWater = panelFlag(card, "show_has_water", view);
+  const showNeedsPriming = panelFlag(card, "show_needs_priming", view);
+  const showIsPriming = panelFlag(card, "show_is_priming", view);
+  const showLastPrime = panelFlag(card, "show_last_prime", view);
+
+  return `
+    <div class="panel">
+      <div class="panel-head">
+        <div class="name-wrap">
+          <div class="name">Bed / Hub</div>
+          <div class="location">${panelIcon(card, view, "🟢")}${hub.status.label}</div>
+        </div>
+        <div class="mode-badge" style="background:${hub.status.color}; box-shadow: 0 0 12px ${hub.status.color};"></div>
+      </div>
+
+      <div class="meta">
+        ${showHubStatus ? panelItem(card, view, "Status", hub.status.label, "🛟") : ``}
+        ${showRoomTemp ? panelItem(card, view, "Room Temp", hub.roomTemp, "🌡️") : ``}
+        ${showHasWater ? panelItem(card, view, "Has Water", hub.hasWater ? "Yes" : "No", "💧") : ``}
+        ${showNeedsPriming ? panelItem(card, view, "Needs Priming", hub.needsPriming ? "Yes" : "No", "⚠️") : ``}
+        ${showIsPriming ? panelItem(card, view, "Is Priming", hub.isPriming ? "Yes" : "No", "🔄") : ``}
+        ${showLastPrime ? panelItem(card, view, "Last Prime", hub.lastPrime, "🕒") : ``}
+      </div>
+    </div>
+  `;
+}
+
 function renderEightSleepBedGraphic(card, left, right) {
   if (!card._config.show_bed_graphic) return ``;
   return `
@@ -396,377 +514,70 @@ function renderEightSleepBedGraphic(card, left, right) {
                         <stop offset="0%" stop-color="#1a1a1b"></stop>
                         <stop offset="100%" stop-color="#101011"></stop>
                       </linearGradient>
-
                       <linearGradient id="bedTopGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stop-color="#121214"></stop>
                         <stop offset="100%" stop-color="#0b0b0d"></stop>
                       </linearGradient>
-
                       <pattern id="mattressTexture" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                         <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,0.12)" stroke-width="1" />
                       </pattern>
-
                       <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
                         <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="rgba(0,0,0,0.45)" />
                       </filter>
                     </defs>
 
-                    <path
-                      d="M150 78
-                         C150 60, 165 48, 184 48
-                         L496 48
-                         C515 48, 530 60, 530 78
-                         L560 366
-                         C563 392, 544 412, 518 412
-                         L162 412
-                         C136 412, 117 392, 120 366
-                         Z"
-                      fill="url(#bedShellGradient)"
-                      filter="url(#softShadow)"
-                    ></path>
+                    <path d="M150 78 C150 60, 165 48, 184 48 L496 48 C515 48, 530 60, 530 78 L560 366 C563 392, 544 412, 518 412 L162 412 C136 412, 117 392, 120 366 Z" fill="url(#bedShellGradient)" filter="url(#softShadow)"></path>
+                    <path d="M172 82 C172 70, 181 62, 194 62 L486 62 C499 62, 508 70, 508 82 L534 338 C536 356, 522 370, 504 370 L176 370 C158 370, 144 356, 146 338 Z" fill="url(#bedTopGradient)"></path>
 
-                    <path
-                      d="M172 82
-                         C172 70, 181 62, 194 62
-                         L486 62
-                         C499 62, 508 70, 508 82
-                         L534 338
-                         C536 356, 522 370, 504 370
-                         L176 370
-                         C158 370, 144 356, 146 338
-                         Z"
-                      fill="url(#bedTopGradient)"
-                    ></path>
+                    <path d="M186 92 C186 82, 193 76, 203 76 L334 76 C344 76, 351 82, 351 92 L370 320 C371 334, 361 344, 347 344 L193 344 C179 344, 169 334, 170 320 Z" fill="rgba(255,255,255,0.018)"></path>
+                    <path d="M186 92 C186 82, 193 76, 203 76 L334 76 C344 76, 351 82, 351 92 L370 320 C371 334, 361 344, 347 344 L193 344 C179 344, 169 334, 170 320 Z" fill="url(#mattressTexture)" opacity="0.16"></path>
+                    <path d="M186 92 C186 82, 193 76, 203 76 L334 76 C344 76, 351 82, 351 92 L351 320 C351 334, 347 344, 333 344 L193 344 C179 344, 169 334, 170 320 Z" fill="none" stroke="${left.color}" stroke-width="3.5" style="filter: drop-shadow(0 0 6px ${left.color}) drop-shadow(0 0 14px ${left.color});"></path>
 
-                    <path
-                      d="M186 92
-                         C186 82, 193 76, 203 76
-                         L334 76
-                         C344 76, 351 82, 351 92
-                         L370 320
-                         C371 334, 361 344, 347 344
-                         L193 344
-                         C179 344, 169 334, 170 320
-                         Z"
-                      fill="rgba(255,255,255,0.018)"
-                    ></path>
+                    <path d="M348 92 C348 82, 355 76, 365 76 L496 76 C506 76, 513 82, 513 92 L532 320 C533 334, 523 344, 509 344 L355 344 C341 344, 331 334, 332 320 Z" fill="rgba(255,255,255,0.018)"></path>
+                    <path d="M348 92 C348 82, 355 76, 365 76 L496 76 C506 76, 513 82, 513 92 L532 320 C533 334, 523 344, 509 344 L355 344 C341 344, 331 334, 332 320 Z" fill="url(#mattressTexture)" opacity="0.16"></path>
+                    <path d="M348 92 C348 82, 355 76, 365 76 L496 76 C506 76, 513 82, 513 92 L532 320 C533 334, 523 344, 509 344 L365 344 C351 344, 348 334, 348 320 Z" fill="none" stroke="${right.color}" stroke-width="3.5" style="filter: drop-shadow(0 0 6px ${right.color}) drop-shadow(0 0 14px ${right.color});"></path>
 
-                    <path
-                      d="M186 92
-                         C186 82, 193 76, 203 76
-                         L334 76
-                         C344 76, 351 82, 351 92
-                         L370 320
-                         C371 334, 361 344, 347 344
-                         L193 344
-                         C179 344, 169 334, 170 320
-                         Z"
-                      fill="url(#mattressTexture)"
-                      opacity="0.16"
-                    ></path>
+                    <line x1="349" y1="80" x2="349" y2="344" stroke="rgba(255,255,255,0.14)" stroke-width="2.5" stroke-linecap="round"></line>
+                    <line x1="351" y1="80" x2="351" y2="344" stroke="rgba(255,255,255,0.14)" stroke-width="2.5" stroke-linecap="round"></line>
 
-                    <path
-                      d="M186 92
-                         C186 82, 193 76, 203 76
-                         L334 76
-                         C344 76, 351 82, 351 92
-                         L370 320
-                         C371 334, 361 344, 347 344
-                         L193 344
-                         C179 344, 169 334, 170 320
-                         Z"
-                      fill="none"
-                      stroke="${left.color}"
-                      stroke-width="3.5"
-                      style="filter: drop-shadow(0 0 6px ${left.color}) drop-shadow(0 0 14px ${left.color});"
-                    ></path>
-
-                    <path
-                      d="M348 92
-                         C348 82, 355 76, 365 76
-                         L496 76
-                         C506 76, 513 82, 513 92
-                         L532 320
-                         C533 334, 523 344, 509 344
-                         L355 344
-                         C341 344, 331 334, 332 320
-                         Z"
-                      fill="rgba(255,255,255,0.018)"
-                    ></path>
-
-                    <path
-                      d="M348 92
-                         C348 82, 355 76, 365 76
-                         L496 76
-                         C506 76, 513 82, 513 92
-                         L532 320
-                         C533 334, 523 344, 509 344
-                         L355 344
-                         C341 344, 331 334, 332 320
-                         Z"
-                      fill="url(#mattressTexture)"
-                      opacity="0.16"
-                    ></path>
-
-                    <path
-                      d="M348 92
-                         C348 82, 355 76, 365 76
-                         L496 76
-                         C506 76, 513 82, 513 92
-                         L532 320
-                         C533 334, 523 344, 509 344
-                         L355 344
-                         C341 344, 331 334, 332 320
-                         Z"
-                      fill="none"
-                      stroke="${right.color}"
-                      stroke-width="3.5"
-                      style="filter: drop-shadow(0 0 6px ${right.color}) drop-shadow(0 0 14px ${right.color});"
-                    ></path>
-
-                    <line
-                      x1="340"
-                      y1="80"
-                      x2="350"
-                      y2="340"
-                      stroke="rgba(255,255,255,0.12)"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                    ></line>
-
-                    <path
-                      d="M206 104
-                         C206 94, 214 88, 224 88
-                         L306 88
-                         C316 88, 324 94, 324 104
-                         L324 130
-                         C324 140, 316 146, 306 146
-                         L224 146
-                         C214 146, 206 140, 206 130
-                         Z"
-                      fill="#f5f5f5"
-                    ></path>
-
-                    <path
-                      d="M370 104
-                         C370 94, 378 88, 388 88
-                         L470 88
-                         C480 88, 488 94, 488 104
-                         L488 130
-                         C488 140, 480 146, 470 146
-                         L388 146
-                         C378 146, 370 140, 370 130
-                         Z"
-                      fill="#f5f5f5"
-                    ></path>
+                    <path d="M206 104 C206 94, 214 88, 224 88 L306 88 C316 88, 324 94, 324 104 L324 130 C324 140, 316 146, 306 146 L224 146 C214 146, 206 140, 206 130 Z" fill="#f5f5f5"></path>
+                    <path d="M370 104 C370 94, 378 88, 388 88 L470 88 C480 88, 488 94, 488 104 L488 130 C488 140, 480 146, 470 146 L388 146 C378 146, 370 140, 370 130 Z" fill="#f5f5f5"></path>
 
                     ${card._renderAvatar(left, 278, 86)}
                     ${card._renderAvatar(right, 442, 86)}
 
-                    ${card._config.show_occupancy_wash && left.occupied
-          ? `
-                          <path
-                            d="M186 92
-                               C186 82, 193 76, 203 76
-                               L334 76
-                               C344 76, 351 82, 351 92
-                               L370 320
-                               C371 334, 361 344, 347 344
-                               L193 344
-                               C179 344, 169 334, 170 320
-                               Z"
-                            fill="${left.color}"
-                            opacity="0.08"
-                          ></path>
-                        `
-          : ``
-      }
-
-                    ${card._config.show_occupancy_wash && right.occupied
-          ? `
-                          <path
-                            d="M348 92
-                               C348 82, 355 76, 365 76
-                               L496 76
-                               C506 76, 513 82, 513 92
-                               L532 320
-                               C533 334, 523 344, 509 344
-                               L355 344
-                               C341 344, 331 334, 332 320
-                               Z"
-                            fill="${right.color}"
-                            opacity="0.08"
-                          ></path>
-                        `
-          : ``
-      }
+                    ${card._config.show_occupancy_wash && left.occupied ? `<path d="M186 92 C186 82, 193 76, 203 76 L334 76 C344 76, 351 82, 351 92 L370 320 C371 334, 361 344, 347 344 L193 344 C179 344, 169 334, 170 320 Z" fill="${left.color}" opacity="0.08"></path>` : ``}
+                    ${card._config.show_occupancy_wash && right.occupied ? `<path d="M348 92 C348 82, 355 76, 365 76 L496 76 C506 76, 513 82, 513 92 L532 320 C533 334, 523 344, 509 344 L355 344 C341 344, 331 334, 332 320 Z" fill="${right.color}" opacity="0.08"></path>` : ``}
                   </svg>
                 </div>
               `;
 }
 
-function renderEightSleepCompactPanels(card, left, right) {
+function renderEightSleepCompactPanels(card, left, right, hub) {
   if (!card._config.show_compact_panels) return ``;
   return `
                 <div class="details">
-                  <div class="panel">
-                    <div class="panel-head">
-                      <div class="name-wrap">
-                        <div class="name">${left.name}</div>
-                        ${card._config.show_location ? `<div class="location">${left.personState}</div>` : ``}
-                      </div>
-                      <div class="mode-badge" style="background:${left.color}; box-shadow: 0 0 12px ${left.color};"></div>
-                    </div>
-
-                    <div class="big">${left.targetTemp}</div>
-                    <div class="mode">${left.modeLabel}</div>
-
-                    <div class="meta">
-                      <div class="meta-item">Occupied<strong>${left.occupied ? "Yes" : "No"}</strong></div>
-
-                      ${card._config.show_sleep_stage
-          ? `<div class="meta-item">Stage<strong>${left.sleepStage}</strong></div>`
-          : ``}
-
-                      ${card._config.show_time_slept
-          ? `<div class="meta-item">Slept<strong>${left.timeSlept}</strong></div>`
-          : ``}
-
-                      ${card._config.show_heart_rate
-          ? `<div class="meta-item">Heart Rate<strong>${left.heartRate}</strong></div>`
-          : ``}
-
-                      ${card._config.show_breath_rate
-          ? `<div class="meta-item">Breath Rate<strong>${left.breathRate}</strong></div>`
-          : ``}
-
-                      ${card._config.show_hrv
-          ? `<div class="meta-item">HRV<strong>${left.hrv}</strong></div>`
-          : ``}
-
-                      ${card._config.show_bed_temp
-          ? `<div class="meta-item">Bed Temp<strong>${left.bedTemp}</strong></div>`
-          : ``}
-
-                      ${card._config.show_scores
-          ? `<div class="meta-item">Fitness<strong>${left.fitnessScore}</strong></div>`
-          : ``}
-
-                      ${card._config.show_scores
-          ? `<div class="meta-item">Quality<strong>${left.qualityScore}</strong></div>`
-          : ``}
-
-                      ${card._config.show_scores
-          ? `<div class="meta-item">Routine<strong>${left.routineScore}</strong></div>`
-          : ``}
-
-                      ${card._config.show_next_alarm
-          ? `<div class="meta-item">Alarm<strong>${left.nextAlarm}</strong></div>`
-          : ``}
-
-                      ${card._config.show_presence_times
-          ? `<div class="meta-item">In Bed<strong>${left.presenceStart}</strong></div>`
-          : ``}
-
-                      ${card._config.show_presence_times
-          ? `<div class="meta-item">Out of Bed<strong>${left.presenceEnd}</strong></div>`
-          : ``}
-                    </div>
-                  </div>
-
-                  <div class="panel">
-                    <div class="panel-head">
-                      <div class="name-wrap">
-                        <div class="name">${right.name}</div>
-                        ${card._config.show_location ? `<div class="location">${right.personState}</div>` : ``}
-                      </div>
-                      <div class="mode-badge" style="background:${right.color}; box-shadow: 0 0 12px ${right.color};"></div>
-                    </div>
-
-                    <div class="big">${right.targetTemp}</div>
-                    <div class="mode">${right.modeLabel}</div>
-
-                    <div class="meta">
-                      <div class="meta-item">Occupied<strong>${right.occupied ? "Yes" : "No"}</strong></div>
-
-                      ${card._config.show_sleep_stage
-          ? `<div class="meta-item">Stage<strong>${right.sleepStage}</strong></div>`
-          : ``}
-
-                      ${card._config.show_time_slept
-          ? `<div class="meta-item">Slept<strong>${right.timeSlept}</strong></div>`
-          : ``}
-
-                      ${card._config.show_heart_rate
-          ? `<div class="meta-item">Heart Rate<strong>${right.heartRate}</strong></div>`
-          : ``}
-
-                      ${card._config.show_breath_rate
-          ? `<div class="meta-item">Breath Rate<strong>${right.breathRate}</strong></div>`
-          : ``}
-
-                      ${card._config.show_hrv
-          ? `<div class="meta-item">HRV<strong>${right.hrv}</strong></div>`
-          : ``}
-
-                      ${card._config.show_bed_temp
-          ? `<div class="meta-item">Bed Temp<strong>${right.bedTemp}</strong></div>`
-          : ``}
-
-                      ${card._config.show_scores
-          ? `<div class="meta-item">Fitness<strong>${right.fitnessScore}</strong></div>`
-          : ``}
-
-                      ${card._config.show_scores
-          ? `<div class="meta-item">Quality<strong>${right.qualityScore}</strong></div>`
-          : ``}
-
-                      ${card._config.show_scores
-          ? `<div class="meta-item">Routine<strong>${right.routineScore}</strong></div>`
-          : ``}
-
-                      ${card._config.show_next_alarm
-          ? `<div class="meta-item">Alarm<strong>${right.nextAlarm}</strong></div>`
-          : ``}
-
-                      ${card._config.show_presence_times
-          ? `<div class="meta-item">In Bed<strong>${right.presenceStart}</strong></div>`
-          : ``}
-
-                      ${card._config.show_presence_times
-          ? `<div class="meta-item">Out of Bed<strong>${right.presenceEnd}</strong></div>`
-          : ``}
-                    </div>
-                  </div>
+                  ${renderEightSleepSidePanel(card, left, "main")}
+                  ${renderEightSleepSidePanel(card, right, "main")}
                 </div>
               `;
 }
 
-function renderEightSleepExpandedOverlay(card, left, right, expandedLeft, expandedRight, expandedHub) {
+function renderEightSleepExpandedOverlay(card, left, right, hub) {
   if (!card._expanded) return ``;
   return `
               <div class="overlay" id="overlay">
                 <div class="overlay-card">
                   <div class="overlay-header">
                     <div class="overlay-title">${card._config.title}</div>
-                    <button class="close-button" title="Close">âœ•</button>
+                    <button class="close-button" title="Close">✕</button>
                   </div>
-
+                  <div class="details">
+                    ${renderEightSleepSidePanel(card, left, "overview")}
+                    ${renderEightSleepSidePanel(card, right, "overview")}
+                  </div>
                   <div class="expanded-layout">
-                    <div class="expanded-section">
-                      <div class="expanded-title">${left.name}</div>
-                      <div class="expanded-grid">${expandedLeft}</div>
-                    </div>
-
-                    <div class="expanded-section">
-                      <div class="expanded-title">${right.name}</div>
-                      <div class="expanded-grid">${expandedRight}</div>
-                    </div>
-
-                    <div class="expanded-section">
-                      <div class="expanded-title">Bed / Hub</div>
-                      <div class="expanded-grid">${expandedHub}</div>
-                    </div>
+                    ${renderEightSleepHubPanel(card, hub, "overview")}
                   </div>
                 </div>
               </div>
@@ -1009,11 +820,11 @@ class EightSleepCard extends HTMLElement {
       return { label: "Priming", color: "#8b5cf6" };
     }
 
-    if (hasWater) {
-      return { label: "Online", color: "#22c55e" };
+    if (!hasWater) {
+      return { label: "Needs Water", color: "#ef4444" };
     }
 
-    return { label: "Offline", color: "#6b7280" };
+    return { label: "Ready", color: "#22c55e" };
   }
 
   _buildSide(sideConfig) {
@@ -1165,52 +976,14 @@ class EightSleepCard extends HTMLElement {
     const showRoomTemp = this._config.show_room_temp && this._config.hub?.room_temp_entity;
     const showPower = !!this._config.power_entity;
 
-    const expandedLeft = [
-      this._metric("Target Temperature", left.targetTemp, "🎯"),
-      this._metric("Bed Temperature", left.bedTemp, "🛏️"),
-      this._metric("Sleep Stage", left.sleepStage, "🌙"),
-      this._metric("Time Slept", left.timeSlept, "⏱️"),
-      this._metric("Heart Rate", left.heartRate, "❤️"),
-      this._metric("Breath Rate", left.breathRate, "🫁"),
-      this._metric("HRV", left.hrv, "📈"),
-      this._metric("Fitness Score", left.fitnessScore, "💪"),
-      this._metric("Quality Score", left.qualityScore, "⭐"),
-      this._metric("Routine Score", left.routineScore, "🗓️"),
-      this._metric("Next Alarm", left.nextAlarm, "⏰"),
-      this._metric("Presence Start", left.presenceStart, "➡️"),
-      this._metric("Presence End", left.presenceEnd, "⬅️"),
-      this._metric("Location", left.personState, "📍"),
-      this._metric("Occupied", left.occupied ? "Yes" : "No", "🧍"),
-      this._metric("Mode", left.modeLabel, "🔆"),
-    ].join("");
-
-    const expandedRight = [
-      this._metric("Target Temperature", right.targetTemp, "🎯"),
-      this._metric("Bed Temperature", right.bedTemp, "🛏️"),
-      this._metric("Sleep Stage", right.sleepStage, "🌙"),
-      this._metric("Time Slept", right.timeSlept, "⏱️"),
-      this._metric("Heart Rate", right.heartRate, "❤️"),
-      this._metric("Breath Rate", right.breathRate, "🫁"),
-      this._metric("HRV", right.hrv, "📈"),
-      this._metric("Fitness Score", right.fitnessScore, "💪"),
-      this._metric("Quality Score", right.qualityScore, "⭐"),
-      this._metric("Routine Score", right.routineScore, "🗓️"),
-      this._metric("Next Alarm", right.nextAlarm, "⏰"),
-      this._metric("Presence Start", right.presenceStart, "➡️"),
-      this._metric("Presence End", right.presenceEnd, "⬅️"),
-      this._metric("Location", right.personState, "📍"),
-      this._metric("Occupied", right.occupied ? "Yes" : "No", "🧍"),
-      this._metric("Mode", right.modeLabel, "🔆"),
-    ].join("");
-
-    const expandedHub = [
-      this._metric("Bed Status", status.label, "🟢"),
-      this._metric("Room Temperature", roomTemp, "🌡️"),
-      this._metric("Has Water", hasWater ? "Yes" : "No", "💧"),
-      this._metric("Is Priming", isPriming ? "Yes" : "No", "🔄"),
-      this._metric("Needs Priming", needsPriming ? "Yes" : "No", "⚠️"),
-      this._metric("Last Prime", lastPrime, "🕒"),
-    ].join("");
+    const hub = {
+      status,
+      roomTemp,
+      hasWater,
+      isPriming,
+      needsPriming,
+      lastPrime,
+    };
 
     this.shadowRoot.innerHTML = `
       ${getEightSleepCardStyles(this._config.tap_action_expand, this._config.use_theme_colors)}
@@ -1242,10 +1015,10 @@ class EightSleepCard extends HTMLElement {
 
           ${renderEightSleepBedGraphic(this, left, right)}
 
-          ${renderEightSleepCompactPanels(this, left, right)}
+          ${renderEightSleepCompactPanels(this, left, right, hub)}
         </div>
 
-        ${renderEightSleepExpandedOverlay(this, left, right, expandedLeft, expandedRight, expandedHub)}
+        ${renderEightSleepExpandedOverlay(this, left, right, hub)}
       </ha-card>
     `;
 
@@ -1281,6 +1054,7 @@ class EightSleepCardEditor extends HTMLElement {
     this._entityRegistry = [];
     this._loading = false;
     this._loaded = false;
+    this._didInitialRender = false;
   }
 
   setConfig(config) {
@@ -1291,7 +1065,9 @@ class EightSleepCardEditor extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     this._loadRegistries();
-    this._render();
+    if (!this._didInitialRender) {
+      this._render();
+    }
   }
 
   async _loadRegistries() {
@@ -1416,7 +1192,7 @@ class EightSleepCardEditor extends HTMLElement {
         ]),
       bed_temp_entity:
         existing.bed_temp_entity ||
-        this._findMatch(entityIds, [["bed", "temperature"], ["bed", "temp"], ["current", "bed", "temp"]]),
+        this._findMatch(entityIds, [["bed", "temperature"], ["bed", "temp"], ["current", "bed", "temp"], ["current", "heating", "temp"]]),
       sleep_stage_entity:
         existing.sleep_stage_entity ||
         this._findMatch(entityIds, [["current", "sleep", "stage"], ["sleep", "stage"], ["stage"]]),
@@ -1425,10 +1201,10 @@ class EightSleepCardEditor extends HTMLElement {
         this._findMatch(entityIds, [["current", "heart", "rate"], ["heart", "rate"], ["heartrate"]]),
       breath_rate_entity:
         existing.breath_rate_entity ||
-        this._findMatch(entityIds, [["current", "breath", "rate"], ["breath", "rate"], ["breathrate"], ["resp", "rate"]]),
+        this._findMatch(entityIds, [["current", "breath", "rate"], ["current", "resp", "rate"], ["respiratory", "rate"], ["breath", "rate"], ["breathrate"], ["resp", "rate"]]),
       hrv_entity:
         existing.hrv_entity ||
-        this._findMatch(entityIds, [["current", "hrv"], ["hrv"]]),
+        this._findMatch(entityIds, [["current", "hrv"], ["heart", "rate", "variability"], ["hrv"]]),
       time_slept_entity:
         existing.time_slept_entity ||
         this._findMatch(entityIds, [["time", "slept"], ["slept"]]),
@@ -1547,6 +1323,37 @@ class EightSleepCardEditor extends HTMLElement {
     `;
   }
 
+  _sideEntityFields(sideKey) {
+    return `
+      ${this._selector("Presence entity", `${sideKey}.presence_entity`, "entity")}
+      ${this._selector("Bed state entity", `${sideKey}.bed_state_entity`, "entity")}
+      ${this._selector("Bed state type entity", `${sideKey}.bed_state_type_entity`, "entity")}
+      ${this._selector("Target temp entity", `${sideKey}.target_temp_entity`, "entity")}
+      ${this._selector("Bed temp entity", `${sideKey}.bed_temp_entity`, "entity")}
+      ${this._selector("Sleep stage entity", `${sideKey}.sleep_stage_entity`, "entity")}
+      ${this._selector("Heart rate entity", `${sideKey}.heart_rate_entity`, "entity")}
+      ${this._selector("Breath rate entity", `${sideKey}.breath_rate_entity`, "entity")}
+      ${this._selector("HRV entity", `${sideKey}.hrv_entity`, "entity")}
+      ${this._selector("Time slept entity", `${sideKey}.time_slept_entity`, "entity")}
+      ${this._selector("Fitness score entity", `${sideKey}.sleep_fitness_score_entity`, "entity")}
+      ${this._selector("Quality score entity", `${sideKey}.sleep_quality_score_entity`, "entity")}
+      ${this._selector("Routine score entity", `${sideKey}.routine_score_entity`, "entity")}
+      ${this._selector("Next alarm entity", `${sideKey}.next_alarm_entity`, "entity")}
+      ${this._selector("Presence start entity", `${sideKey}.presence_start_entity`, "entity")}
+      ${this._selector("Presence end entity", `${sideKey}.presence_end_entity`, "entity")}
+    `;
+  }
+
+  _hubEntityFields() {
+    return `
+      ${this._selector("Room temp entity", "hub.room_temp_entity", "entity")}
+      ${this._selector("Has water entity", "hub.has_water_entity", "entity")}
+      ${this._selector("Needs priming entity", "hub.needs_priming_entity", "entity")}
+      ${this._selector("Is priming entity", "hub.is_priming_entity", "entity")}
+      ${this._selector("Last prime entity", "hub.last_prime_entity", "entity")}
+    `;
+  }
+
   _section(title, body) {
     return `
       <div class="section">
@@ -1645,6 +1452,8 @@ class EightSleepCardEditor extends HTMLElement {
             ${this._selector("Power entity", "power_entity", "entity")}
             ${this._toggle("Tap card to expand", "tap_action_expand", !!this._valueAt("tap_action_expand"))}
             ${this._toggle("Use theme colors", "use_theme_colors", !!this._valueAt("use_theme_colors"))}
+            ${this._toggle("Show icons on main card", "show_icons_main", !!this._valueAt("show_icons_main"))}
+            ${this._toggle("Show icons on overview", "show_icons_overview", !!this._valueAt("show_icons_overview"))}
             ${this._toggle("Show bed graphic", "show_bed_graphic", !!this._valueAt("show_bed_graphic"))}
             ${this._toggle("Show compact panels", "show_compact_panels", !!this._valueAt("show_compact_panels"))}
             ${this._toggle("Show occupancy wash", "show_occupancy_wash", !!this._valueAt("show_occupancy_wash"))}
@@ -1655,11 +1464,17 @@ class EightSleepCardEditor extends HTMLElement {
       "Top / Hub Data",
       `
             ${this._toggle("Show room temperature", "show_room_temp", !!this._valueAt("show_room_temp"))}
+            ${this._toggle("Show room temperature (overview)", "show_room_temp_overview", !!this._valueAt("show_room_temp_overview"))}
             ${this._toggle("Show bed status", "show_hub_status", !!this._valueAt("show_hub_status"))}
+            ${this._toggle("Show bed status (overview)", "show_hub_status_overview", !!this._valueAt("show_hub_status_overview"))}
             ${this._toggle("Show has water", "show_has_water", !!this._valueAt("show_has_water"))}
+            ${this._toggle("Show has water (overview)", "show_has_water_overview", !!this._valueAt("show_has_water_overview"))}
             ${this._toggle("Show needs priming", "show_needs_priming", !!this._valueAt("show_needs_priming"))}
+            ${this._toggle("Show needs priming (overview)", "show_needs_priming_overview", !!this._valueAt("show_needs_priming_overview"))}
             ${this._toggle("Show is priming", "show_is_priming", !!this._valueAt("show_is_priming"))}
+            ${this._toggle("Show is priming (overview)", "show_is_priming_overview", !!this._valueAt("show_is_priming_overview"))}
             ${this._toggle("Show last prime", "show_last_prime", !!this._valueAt("show_last_prime"))}
+            ${this._toggle("Show last prime (overview)", "show_last_prime_overview", !!this._valueAt("show_last_prime_overview"))}
           `
     )}
 
@@ -1667,16 +1482,27 @@ class EightSleepCardEditor extends HTMLElement {
       "Person / Side Metrics",
       `
             ${this._toggle("Show target temperature", "show_target_temp", !!this._valueAt("show_target_temp"))}
+            ${this._toggle("Show target temperature (overview)", "show_target_temp_overview", !!this._valueAt("show_target_temp_overview"))}
             ${this._toggle("Show bed temperature", "show_bed_temp", !!this._valueAt("show_bed_temp"))}
+            ${this._toggle("Show bed temperature (overview)", "show_bed_temp_overview", !!this._valueAt("show_bed_temp_overview"))}
             ${this._toggle("Show sleep stage", "show_sleep_stage", !!this._valueAt("show_sleep_stage"))}
+            ${this._toggle("Show sleep stage (overview)", "show_sleep_stage_overview", !!this._valueAt("show_sleep_stage_overview"))}
             ${this._toggle("Show time slept", "show_time_slept", !!this._valueAt("show_time_slept"))}
+            ${this._toggle("Show time slept (overview)", "show_time_slept_overview", !!this._valueAt("show_time_slept_overview"))}
             ${this._toggle("Show heart rate", "show_heart_rate", !!this._valueAt("show_heart_rate"))}
+            ${this._toggle("Show heart rate (overview)", "show_heart_rate_overview", !!this._valueAt("show_heart_rate_overview"))}
             ${this._toggle("Show breath rate", "show_breath_rate", !!this._valueAt("show_breath_rate"))}
+            ${this._toggle("Show breath rate (overview)", "show_breath_rate_overview", !!this._valueAt("show_breath_rate_overview"))}
             ${this._toggle("Show HRV", "show_hrv", !!this._valueAt("show_hrv"))}
+            ${this._toggle("Show HRV (overview)", "show_hrv_overview", !!this._valueAt("show_hrv_overview"))}
             ${this._toggle("Show sleep scores", "show_scores", !!this._valueAt("show_scores"))}
+            ${this._toggle("Show sleep scores (overview)", "show_scores_overview", !!this._valueAt("show_scores_overview"))}
             ${this._toggle("Show next alarm", "show_next_alarm", !!this._valueAt("show_next_alarm"))}
+            ${this._toggle("Show next alarm (overview)", "show_next_alarm_overview", !!this._valueAt("show_next_alarm_overview"))}
             ${this._toggle("Show presence times", "show_presence_times", !!this._valueAt("show_presence_times"))}
+            ${this._toggle("Show presence times (overview)", "show_presence_times_overview", !!this._valueAt("show_presence_times_overview"))}
             ${this._toggle("Show person location", "show_location", !!this._valueAt("show_location"))}
+            ${this._toggle("Show person location (overview)", "show_location_overview", !!this._valueAt("show_location_overview"))}
           `
     )}
 
@@ -1686,6 +1512,7 @@ class EightSleepCardEditor extends HTMLElement {
             ${this._textField("Display name", "left.name", this._valueAt("left.name"))}
             ${this._selector("Left device", "left.device_id", "device")}
             ${this._selector("Left person", "left.person_entity", "person")}
+            ${this._sideEntityFields("left")}
             <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
           `
     )}
@@ -1696,6 +1523,7 @@ class EightSleepCardEditor extends HTMLElement {
             ${this._textField("Display name", "right.name", this._valueAt("right.name"))}
             ${this._selector("Right device", "right.device_id", "device")}
             ${this._selector("Right person", "right.person_entity", "person")}
+            ${this._sideEntityFields("right")}
             <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
           `
     )}
@@ -1704,6 +1532,7 @@ class EightSleepCardEditor extends HTMLElement {
       "Whole Bed / Hub",
       `
             ${this._selector("Hub device", "hub.device_id", "device")}
+            ${this._hubEntityFields()}
             <div class="hint">Selecting the hub device auto-fills room temp, water, and priming sensors when found.</div>
           `
     )}
@@ -1765,6 +1594,7 @@ class EightSleepCardEditor extends HTMLElement {
         }
       });
     });
+    this._didInitialRender = true;
   }
 }
 
