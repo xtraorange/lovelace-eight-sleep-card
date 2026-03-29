@@ -14,6 +14,7 @@ class EightSleepCard extends HTMLElement {
     this._hass = null;
     this._expanded = false;
     this._lastRenderKey = "";
+    this._singleSleeperMode = false;
   }
 
   setConfig(config) {
@@ -62,6 +63,7 @@ class EightSleepCard extends HTMLElement {
       this._config.left?.next_alarm_entity,
       this._config.left?.presence_start_entity,
       this._config.left?.presence_end_entity,
+      this._config.left?.side_entity,
 
       this._config.right?.person_entity,
       this._config.right?.presence_entity,
@@ -80,6 +82,7 @@ class EightSleepCard extends HTMLElement {
       this._config.right?.next_alarm_entity,
       this._config.right?.presence_start_entity,
       this._config.right?.presence_end_entity,
+      this._config.right?.side_entity,
 
       this._config.hub?.room_temp_entity,
       this._config.hub?.has_water_entity,
@@ -123,6 +126,21 @@ class EightSleepCard extends HTMLElement {
   _formatTemp(value) {
     if (isEightSleepMissingValue(value)) {
       return "—";
+    }
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return `${Math.round(parsed * 10) / 10}°`;
+    }
+    return `${value}°`;
+  }
+
+  _formatRoomTemp(value) {
+    if (isEightSleepMissingValue(value)) {
+      return "—";
+    }
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return `${Math.round(parsed)}°`;
     }
     return `${value}°`;
   }
@@ -241,6 +259,72 @@ class EightSleepCard extends HTMLElement {
     return { label: "Ready", color: "#22c55e" };
   }
 
+  _normalizeSideType(value) {
+    const raw = String(value || "").toLowerCase();
+    if (raw.includes("both")) return "both";
+    if (raw.includes("left")) return "left";
+    if (raw.includes("right")) return "right";
+    return "";
+  }
+
+  _sideHasData(side) {
+    return [
+      side.targetTemp,
+      side.bedTemp,
+      side.sleepStage,
+      side.heartRate,
+      side.breathRate,
+      side.hrv,
+      side.timeSlept,
+      side.fitnessScore,
+      side.qualityScore,
+      side.routineScore,
+      side.nextAlarm,
+      side.presenceStart,
+      side.presenceEnd,
+    ].some((value) => value && value !== "—");
+  }
+
+  _cloneSideForBoth(source) {
+    return {
+      ...source,
+      name: "Both Sides",
+      sideType: "both",
+    };
+  }
+
+  _resolveSides(left, right) {
+    const manualSingleSleeper = !!this._config.one_person_both_sides;
+    const leftIsBoth = left.sideType === "both";
+    const rightIsBoth = right.sideType === "both";
+    const leftHasData = this._sideHasData(left);
+    const rightHasData = this._sideHasData(right);
+
+    let source = null;
+    if (leftIsBoth) {
+      source = left;
+    } else if (rightIsBoth) {
+      source = right;
+    } else if (manualSingleSleeper && leftHasData && !rightHasData) {
+      source = left;
+    } else if (manualSingleSleeper && rightHasData && !leftHasData) {
+      source = right;
+    } else if (manualSingleSleeper && leftHasData) {
+      source = left;
+    } else if (manualSingleSleeper && rightHasData) {
+      source = right;
+    }
+
+    if (!source) {
+      this._singleSleeperMode = false;
+      return { left, right };
+    }
+
+    const both = this._cloneSideForBoth(source);
+    this._singleSleeperMode = true;
+    return { left: both, right: both };
+  }
+
   _buildSide(sideConfig) {
     const personEntity = this._entity(sideConfig.person_entity);
     const personName =
@@ -249,7 +333,7 @@ class EightSleepCard extends HTMLElement {
       "Side";
 
     const personPicture = personEntity?.attributes?.entity_picture || "";
-    const personState = personEntity?.state || "—";
+    const sideType = this._normalizeSideType(this._state(sideConfig.side_entity, ""));
 
     const bedStateType = this._state(sideConfig.bed_state_type_entity, "unknown");
     const occupied = this._presenceOn(this._state(sideConfig.presence_entity, "off"));
@@ -273,7 +357,7 @@ class EightSleepCard extends HTMLElement {
       name: personName,
       personPicture,
       initials: this._initials(personName),
-      personState: this._safeText(personState, "—"),
+      sideType,
       occupied,
       color,
       modeLabel: this._modeLabel(bedStateType),
@@ -377,11 +461,12 @@ class EightSleepCard extends HTMLElement {
   _render() {
     if (!this._config || !this._hass) return;
 
-    const left = this._buildSide(this._config.left);
-    const right = this._buildSide(this._config.right);
+    const rawLeft = this._buildSide(this._config.left);
+    const rawRight = this._buildSide(this._config.right);
+    const { left, right } = this._resolveSides(rawLeft, rawRight);
 
     const status = this._statusInfo();
-    const roomTemp = this._formatTemp(this._state(this._config.hub?.room_temp_entity, null));
+    const roomTemp = this._formatRoomTemp(this._state(this._config.hub?.room_temp_entity, null));
     const hasWater = this._presenceOn(this._state(this._config.hub?.has_water_entity, null));
     const isPriming = this._presenceOn(this._state(this._config.hub?.is_priming_entity, null));
     const needsPriming = this._presenceOn(this._state(this._config.hub?.needs_priming_entity, null));

@@ -27,20 +27,28 @@ function renderEightSleepSidePanel(card, side, view) {
   const showScores = panelFlag(card, "show_scores", view);
   const showAlarm = panelFlag(card, "show_next_alarm", view);
   const showPresenceTimes = panelFlag(card, "show_presence_times", view);
-  const showLocation = panelFlag(card, "show_location", view);
 
   return `
     <div class="panel">
       <div class="panel-head">
         <div class="name-wrap">
           <div class="name">${side.name}</div>
-          ${showLocation ? `<div class="location">${side.personState}</div>` : ``}
         </div>
         <div class="mode-badge" style="background:${side.color}; box-shadow: 0 0 12px ${side.color};"></div>
       </div>
 
-      ${showTarget ? `<div class="big">${side.targetTemp}</div>` : ``}
-      ${showBed ? `<div class="big big-secondary">${side.bedTemp}</div>` : ``}
+      ${showTarget
+      ? `
+            <div class="big-label">Target Temp</div>
+            <div class="big">${side.targetTemp}</div>
+          `
+      : ``}
+      ${showBed
+      ? `
+            <div class="big-label">Bed Temp</div>
+            <div class="big big-secondary">${side.bedTemp}</div>
+          `
+      : ``}
       <div class="mode">${panelIcon(card, view, "🔆")}${side.modeLabel}</div>
 
       <div class="meta">
@@ -130,8 +138,9 @@ function renderEightSleepBedGraphic(card, left, right) {
                     <path d="M206 104 C206 94, 214 88, 224 88 L306 88 C316 88, 324 94, 324 104 L324 130 C324 140, 316 146, 306 146 L224 146 C214 146, 206 140, 206 130 Z" fill="#f5f5f5"></path>
                     <path d="M370 104 C370 94, 378 88, 388 88 L470 88 C480 88, 488 94, 488 104 L488 130 C488 140, 480 146, 470 146 L388 146 C378 146, 370 140, 370 130 Z" fill="#f5f5f5"></path>
 
-                    ${card._renderAvatar(left, 278, 86)}
-                    ${card._renderAvatar(right, 442, 86)}
+                    ${card._singleSleeperMode
+      ? card._renderAvatar(left, 360, 86)
+      : `${card._renderAvatar(left, 278, 86)}${card._renderAvatar(right, 442, 86)}`}
 
                     ${card._config.show_occupancy_wash && left.occupied ? `<path d="M186 92 C186 82, 193 76, 203 76 L334 76 C344 76, 351 82, 351 92 L370 320 C371 334, 361 344, 347 344 L193 344 C179 344, 169 334, 170 320 Z" fill="${left.color}" opacity="0.08"></path>` : ``}
                     ${card._config.show_occupancy_wash && right.occupied ? `<path d="M348 92 C348 82, 355 76, 365 76 L496 76 C506 76, 513 82, 513 92 L532 320 C533 334, 523 344, 509 344 L355 344 C341 344, 331 334, 332 320 Z" fill="${right.color}" opacity="0.08"></path>` : ``}
@@ -142,16 +151,17 @@ function renderEightSleepBedGraphic(card, left, right) {
 
 function renderEightSleepCompactPanels(card, left, right, hub) {
   if (!card._config.show_compact_panels) return ``;
+  const sides = card._singleSleeperMode ? [left] : [left, right];
   return `
-                <div class="details">
-                  ${renderEightSleepSidePanel(card, left, "main")}
-                  ${renderEightSleepSidePanel(card, right, "main")}
+                <div class="details ${card._singleSleeperMode ? "single-side" : ""}">
+                  ${sides.map((side) => renderEightSleepSidePanel(card, side, "main")).join("")}
                 </div>
               `;
 }
 
 function renderEightSleepExpandedOverlay(card, left, right, hub) {
   if (!card._expanded) return ``;
+  const sides = card._singleSleeperMode ? [left] : [left, right];
   return `
               <div class="overlay" id="overlay">
                 <div class="overlay-card">
@@ -159,9 +169,8 @@ function renderEightSleepExpandedOverlay(card, left, right, hub) {
                     <div class="overlay-title">${card._config.title}</div>
                     <button class="close-button" title="Close">✕</button>
                   </div>
-                  <div class="details">
-                    ${renderEightSleepSidePanel(card, left, "overview")}
-                    ${renderEightSleepSidePanel(card, right, "overview")}
+                  <div class="details ${card._singleSleeperMode ? "single-side" : ""}">
+                    ${sides.map((side) => renderEightSleepSidePanel(card, side, "overview")).join("")}
                   </div>
                   <div class="expanded-layout">
                     ${renderEightSleepHubPanel(card, hub, "overview")}

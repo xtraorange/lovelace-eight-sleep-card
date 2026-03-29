@@ -147,6 +147,10 @@ function getEightSleepCardStyles(tapActionExpand, useThemeColors = false) {
           gap: 12px;
         }
 
+        .details.single-side {
+          grid-template-columns: 1fr;
+        }
+
         .panel {
           background: ${panelBackground};
           border: 1px solid ${panelBorder};
@@ -198,6 +202,14 @@ function getEightSleepCardStyles(tapActionExpand, useThemeColors = false) {
           font-weight: 800;
           line-height: 1.05;
           margin-bottom: 4px;
+        }
+
+        .big-label {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: ${mutedText};
+          margin-bottom: 2px;
         }
 
         .big-secondary {

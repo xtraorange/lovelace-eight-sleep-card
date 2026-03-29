@@ -28,7 +28,8 @@ const EIGHT_SLEEP_DEFAULT_CONFIG = {
   show_presence_times: false,
   show_presence_times_overview: false,
   show_bed_temp_overview: true,
-  show_location_overview: true,
+  show_location: false,
+  show_location_overview: false,
   show_hub_status_overview: true,
   show_has_water_overview: true,
   show_needs_priming_overview: true,
@@ -40,6 +41,7 @@ const EIGHT_SLEEP_DEFAULT_CONFIG = {
   use_theme_colors: false,
   show_icons_main: false,
   show_icons_overview: false,
+  one_person_both_sides: false,
 };
 
 function createEightSleepConfig(config = {}) {

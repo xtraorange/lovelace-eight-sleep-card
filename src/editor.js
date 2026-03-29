@@ -9,6 +9,7 @@ class EightSleepCardEditor extends HTMLElement {
     this._loading = false;
     this._loaded = false;
     this._didInitialRender = false;
+    this._activeTab = "options";
   }
 
   setConfig(config) {
@@ -268,6 +269,20 @@ class EightSleepCardEditor extends HTMLElement {
     `;
   }
 
+  _matrixRow(label, cardPath, overviewPath) {
+    return `
+      <div class="matrix-row">
+        <div class="matrix-label">${label}</div>
+        <label class="matrix-check">
+          <input type="checkbox" data-path="${cardPath}" ${this._valueAt(cardPath) ? "checked" : ""} />
+        </label>
+        <label class="matrix-check">
+          <input type="checkbox" data-path="${overviewPath}" ${this._valueAt(overviewPath) ? "checked" : ""} />
+        </label>
+      </div>
+    `;
+  }
+
   _selector(label, path, kind) {
     return `
       <div class="field">
@@ -295,6 +310,7 @@ class EightSleepCardEditor extends HTMLElement {
       ${this._selector("Next alarm entity", `${sideKey}.next_alarm_entity`, "entity")}
       ${this._selector("Presence start entity", `${sideKey}.presence_start_entity`, "entity")}
       ${this._selector("Presence end entity", `${sideKey}.presence_end_entity`, "entity")}
+      ${this._selector("Side entity (left/right/both)", `${sideKey}.side_entity`, "entity")}
     `;
   }
 
@@ -317,6 +333,96 @@ class EightSleepCardEditor extends HTMLElement {
     `;
   }
 
+  _renderOptionMatrix(title, rows) {
+    return `
+      <div class="section">
+        <div class="section-title">${title}</div>
+        <div class="matrix-head">
+          <div></div>
+          <div>Card</div>
+          <div>Overview</div>
+        </div>
+        <div class="matrix">
+          ${rows.map((row) => this._matrixRow(row.label, row.card, row.overview)).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  _optionsTabContent() {
+    return `
+      ${this._section(
+      "General",
+      `
+            ${this._textField("Title", "title", this._valueAt("title"))}
+            ${this._selector("Avatar mode", "avatar_mode", "avatar_mode")}
+            ${this._selector("Power entity", "power_entity", "entity")}
+            ${this._toggle("Tap card to expand", "tap_action_expand", !!this._valueAt("tap_action_expand"))}
+            ${this._toggle("Use theme colors", "use_theme_colors", !!this._valueAt("use_theme_colors"))}
+            ${this._toggle("Show bed graphic", "show_bed_graphic", !!this._valueAt("show_bed_graphic"))}
+            ${this._toggle("Show compact panels", "show_compact_panels", !!this._valueAt("show_compact_panels"))}
+            ${this._toggle("Show occupancy wash", "show_occupancy_wash", !!this._valueAt("show_occupancy_wash"))}
+            ${this._toggle("One person uses both sides", "one_person_both_sides", !!this._valueAt("one_person_both_sides"))}
+          `
+    )}
+
+      ${this._renderOptionMatrix("Display Controls", [
+      { label: "Show icons", card: "show_icons_main", overview: "show_icons_overview" },
+      { label: "Show room temperature", card: "show_room_temp", overview: "show_room_temp_overview" },
+      { label: "Show bed status", card: "show_hub_status", overview: "show_hub_status_overview" },
+      { label: "Show has water", card: "show_has_water", overview: "show_has_water_overview" },
+      { label: "Show needs priming", card: "show_needs_priming", overview: "show_needs_priming_overview" },
+      { label: "Show is priming", card: "show_is_priming", overview: "show_is_priming_overview" },
+      { label: "Show last prime", card: "show_last_prime", overview: "show_last_prime_overview" },
+      { label: "Show target temperature", card: "show_target_temp", overview: "show_target_temp_overview" },
+      { label: "Show bed temperature", card: "show_bed_temp", overview: "show_bed_temp_overview" },
+      { label: "Show sleep stage", card: "show_sleep_stage", overview: "show_sleep_stage_overview" },
+      { label: "Show time slept", card: "show_time_slept", overview: "show_time_slept_overview" },
+      { label: "Show heart rate", card: "show_heart_rate", overview: "show_heart_rate_overview" },
+      { label: "Show breath rate", card: "show_breath_rate", overview: "show_breath_rate_overview" },
+      { label: "Show HRV", card: "show_hrv", overview: "show_hrv_overview" },
+      { label: "Show sleep scores", card: "show_scores", overview: "show_scores_overview" },
+      { label: "Show next alarm", card: "show_next_alarm", overview: "show_next_alarm_overview" },
+      { label: "Show presence times", card: "show_presence_times", overview: "show_presence_times_overview" },
+    ])}
+    `;
+  }
+
+  _entitiesTabContent() {
+    return `
+      ${this._section(
+      "Left Side",
+      `
+            ${this._textField("Display name", "left.name", this._valueAt("left.name"))}
+            ${this._selector("Left device", "left.device_id", "device")}
+            ${this._selector("Left person", "left.person_entity", "person")}
+            ${this._sideEntityFields("left")}
+            <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
+          `
+    )}
+
+      ${this._section(
+      "Right Side",
+      `
+            ${this._textField("Display name", "right.name", this._valueAt("right.name"))}
+            ${this._selector("Right device", "right.device_id", "device")}
+            ${this._selector("Right person", "right.person_entity", "person")}
+            ${this._sideEntityFields("right")}
+            <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
+          `
+    )}
+
+      ${this._section(
+      "Whole Bed / Hub",
+      `
+            ${this._selector("Hub device", "hub.device_id", "device")}
+            ${this._hubEntityFields()}
+            <div class="hint">Selecting the hub device auto-fills room temp, water, and priming sensors when found.</div>
+          `
+    )}
+    `;
+  }
+
   _render() {
     this.shadowRoot.innerHTML = `
       <style>
@@ -329,6 +435,28 @@ class EightSleepCardEditor extends HTMLElement {
           gap: 16px;
           padding: 12px 0;
           font-family: system-ui, sans-serif;
+        }
+
+        .tabs {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .tab-button {
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 12px;
+          background: rgba(255,255,255,0.03);
+          color: var(--primary-text-color);
+          font: inherit;
+          font-size: 13px;
+          padding: 8px 12px;
+          cursor: pointer;
+        }
+
+        .tab-button.active {
+          border-color: var(--primary-color);
+          background: color-mix(in srgb, var(--primary-color) 20%, rgba(255,255,255,0.03) 80%);
         }
 
         .section {
@@ -384,6 +512,44 @@ class EightSleepCardEditor extends HTMLElement {
           padding: 4px 0;
         }
 
+        .matrix-head,
+        .matrix-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 80px 80px;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .matrix-head {
+          padding: 0 0 8px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+          color: var(--secondary-text-color);
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .matrix {
+          display: grid;
+          gap: 8px;
+          margin-top: 10px;
+        }
+
+        .matrix-row {
+          min-height: 30px;
+        }
+
+        .matrix-label {
+          font-size: 12px;
+          color: var(--primary-text-color);
+        }
+
+        .matrix-check {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+
         .hint {
           font-size: 11px;
           color: var(--secondary-text-color);
@@ -395,105 +561,35 @@ class EightSleepCardEditor extends HTMLElement {
           font-size: 12px;
           color: var(--secondary-text-color);
         }
+
+        @media (max-width: 520px) {
+          .matrix-head,
+          .matrix-row {
+            grid-template-columns: minmax(0, 1fr) 64px 64px;
+          }
+        }
       </style>
 
       <div class="wrap">
-        ${this._section(
-      "General",
-      `
-            ${this._textField("Title", "title", this._valueAt("title"))}
-            ${this._selector("Avatar mode", "avatar_mode", "avatar_mode")}
-            ${this._selector("Power entity", "power_entity", "entity")}
-            ${this._toggle("Tap card to expand", "tap_action_expand", !!this._valueAt("tap_action_expand"))}
-            ${this._toggle("Use theme colors", "use_theme_colors", !!this._valueAt("use_theme_colors"))}
-            ${this._toggle("Show icons on main card", "show_icons_main", !!this._valueAt("show_icons_main"))}
-            ${this._toggle("Show icons on overview", "show_icons_overview", !!this._valueAt("show_icons_overview"))}
-            ${this._toggle("Show bed graphic", "show_bed_graphic", !!this._valueAt("show_bed_graphic"))}
-            ${this._toggle("Show compact panels", "show_compact_panels", !!this._valueAt("show_compact_panels"))}
-            ${this._toggle("Show occupancy wash", "show_occupancy_wash", !!this._valueAt("show_occupancy_wash"))}
-          `
-    )}
+        <div class="tabs">
+          <button class="tab-button ${this._activeTab === "options" ? "active" : ""}" data-tab="options">Options</button>
+          <button class="tab-button ${this._activeTab === "entities" ? "active" : ""}" data-tab="entities">Entities</button>
+        </div>
 
-        ${this._section(
-      "Top / Hub Data",
-      `
-            ${this._toggle("Show room temperature", "show_room_temp", !!this._valueAt("show_room_temp"))}
-            ${this._toggle("Show room temperature (overview)", "show_room_temp_overview", !!this._valueAt("show_room_temp_overview"))}
-            ${this._toggle("Show bed status", "show_hub_status", !!this._valueAt("show_hub_status"))}
-            ${this._toggle("Show bed status (overview)", "show_hub_status_overview", !!this._valueAt("show_hub_status_overview"))}
-            ${this._toggle("Show has water", "show_has_water", !!this._valueAt("show_has_water"))}
-            ${this._toggle("Show has water (overview)", "show_has_water_overview", !!this._valueAt("show_has_water_overview"))}
-            ${this._toggle("Show needs priming", "show_needs_priming", !!this._valueAt("show_needs_priming"))}
-            ${this._toggle("Show needs priming (overview)", "show_needs_priming_overview", !!this._valueAt("show_needs_priming_overview"))}
-            ${this._toggle("Show is priming", "show_is_priming", !!this._valueAt("show_is_priming"))}
-            ${this._toggle("Show is priming (overview)", "show_is_priming_overview", !!this._valueAt("show_is_priming_overview"))}
-            ${this._toggle("Show last prime", "show_last_prime", !!this._valueAt("show_last_prime"))}
-            ${this._toggle("Show last prime (overview)", "show_last_prime_overview", !!this._valueAt("show_last_prime_overview"))}
-          `
-    )}
-
-        ${this._section(
-      "Person / Side Metrics",
-      `
-            ${this._toggle("Show target temperature", "show_target_temp", !!this._valueAt("show_target_temp"))}
-            ${this._toggle("Show target temperature (overview)", "show_target_temp_overview", !!this._valueAt("show_target_temp_overview"))}
-            ${this._toggle("Show bed temperature", "show_bed_temp", !!this._valueAt("show_bed_temp"))}
-            ${this._toggle("Show bed temperature (overview)", "show_bed_temp_overview", !!this._valueAt("show_bed_temp_overview"))}
-            ${this._toggle("Show sleep stage", "show_sleep_stage", !!this._valueAt("show_sleep_stage"))}
-            ${this._toggle("Show sleep stage (overview)", "show_sleep_stage_overview", !!this._valueAt("show_sleep_stage_overview"))}
-            ${this._toggle("Show time slept", "show_time_slept", !!this._valueAt("show_time_slept"))}
-            ${this._toggle("Show time slept (overview)", "show_time_slept_overview", !!this._valueAt("show_time_slept_overview"))}
-            ${this._toggle("Show heart rate", "show_heart_rate", !!this._valueAt("show_heart_rate"))}
-            ${this._toggle("Show heart rate (overview)", "show_heart_rate_overview", !!this._valueAt("show_heart_rate_overview"))}
-            ${this._toggle("Show breath rate", "show_breath_rate", !!this._valueAt("show_breath_rate"))}
-            ${this._toggle("Show breath rate (overview)", "show_breath_rate_overview", !!this._valueAt("show_breath_rate_overview"))}
-            ${this._toggle("Show HRV", "show_hrv", !!this._valueAt("show_hrv"))}
-            ${this._toggle("Show HRV (overview)", "show_hrv_overview", !!this._valueAt("show_hrv_overview"))}
-            ${this._toggle("Show sleep scores", "show_scores", !!this._valueAt("show_scores"))}
-            ${this._toggle("Show sleep scores (overview)", "show_scores_overview", !!this._valueAt("show_scores_overview"))}
-            ${this._toggle("Show next alarm", "show_next_alarm", !!this._valueAt("show_next_alarm"))}
-            ${this._toggle("Show next alarm (overview)", "show_next_alarm_overview", !!this._valueAt("show_next_alarm_overview"))}
-            ${this._toggle("Show presence times", "show_presence_times", !!this._valueAt("show_presence_times"))}
-            ${this._toggle("Show presence times (overview)", "show_presence_times_overview", !!this._valueAt("show_presence_times_overview"))}
-            ${this._toggle("Show person location", "show_location", !!this._valueAt("show_location"))}
-            ${this._toggle("Show person location (overview)", "show_location_overview", !!this._valueAt("show_location_overview"))}
-          `
-    )}
-
-        ${this._section(
-      "Left Side",
-      `
-            ${this._textField("Display name", "left.name", this._valueAt("left.name"))}
-            ${this._selector("Left device", "left.device_id", "device")}
-            ${this._selector("Left person", "left.person_entity", "person")}
-            ${this._sideEntityFields("left")}
-            <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
-          `
-    )}
-
-        ${this._section(
-      "Right Side",
-      `
-            ${this._textField("Display name", "right.name", this._valueAt("right.name"))}
-            ${this._selector("Right device", "right.device_id", "device")}
-            ${this._selector("Right person", "right.person_entity", "person")}
-            ${this._sideEntityFields("right")}
-            <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
-          `
-    )}
-
-        ${this._section(
-      "Whole Bed / Hub",
-      `
-            ${this._selector("Hub device", "hub.device_id", "device")}
-            ${this._hubEntityFields()}
-            <div class="hint">Selecting the hub device auto-fills room temp, water, and priming sensors when found.</div>
-          `
-    )}
+        ${this._activeTab === "entities" ? this._entitiesTabContent() : this._optionsTabContent()}
 
         ${this._loading ? `<div class="loading">Loading device registry…</div>` : ``}
       </div>
     `;
+
+    this.shadowRoot.querySelectorAll(".tab-button").forEach((button) => {
+      button.addEventListener("click", (ev) => {
+        const tab = ev.currentTarget?.dataset?.tab;
+        if (!tab || tab === this._activeTab) return;
+        this._activeTab = tab;
+        this._render();
+      });
+    });
 
     this.shadowRoot.querySelectorAll(".text-input").forEach((input) => {
       input.addEventListener("input", (ev) => {

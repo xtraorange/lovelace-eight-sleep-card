@@ -28,7 +28,8 @@ const EIGHT_SLEEP_DEFAULT_CONFIG = {
   show_presence_times: false,
   show_presence_times_overview: false,
   show_bed_temp_overview: true,
-  show_location_overview: true,
+  show_location: false,
+  show_location_overview: false,
   show_hub_status_overview: true,
   show_has_water_overview: true,
   show_needs_priming_overview: true,
@@ -40,6 +41,7 @@ const EIGHT_SLEEP_DEFAULT_CONFIG = {
   use_theme_colors: false,
   show_icons_main: false,
   show_icons_overview: false,
+  one_person_both_sides: false,
 };
 
 function createEightSleepConfig(config = {}) {
@@ -219,6 +221,10 @@ function getEightSleepCardStyles(tapActionExpand, useThemeColors = false) {
           gap: 12px;
         }
 
+        .details.single-side {
+          grid-template-columns: 1fr;
+        }
+
         .panel {
           background: ${panelBackground};
           border: 1px solid ${panelBorder};
@@ -270,6 +276,14 @@ function getEightSleepCardStyles(tapActionExpand, useThemeColors = false) {
           font-weight: 800;
           line-height: 1.05;
           margin-bottom: 4px;
+        }
+
+        .big-label {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: ${mutedText};
+          margin-bottom: 2px;
         }
 
         .big-secondary {
@@ -440,20 +454,28 @@ function renderEightSleepSidePanel(card, side, view) {
   const showScores = panelFlag(card, "show_scores", view);
   const showAlarm = panelFlag(card, "show_next_alarm", view);
   const showPresenceTimes = panelFlag(card, "show_presence_times", view);
-  const showLocation = panelFlag(card, "show_location", view);
 
   return `
     <div class="panel">
       <div class="panel-head">
         <div class="name-wrap">
           <div class="name">${side.name}</div>
-          ${showLocation ? `<div class="location">${side.personState}</div>` : ``}
         </div>
         <div class="mode-badge" style="background:${side.color}; box-shadow: 0 0 12px ${side.color};"></div>
       </div>
 
-      ${showTarget ? `<div class="big">${side.targetTemp}</div>` : ``}
-      ${showBed ? `<div class="big big-secondary">${side.bedTemp}</div>` : ``}
+      ${showTarget
+      ? `
+            <div class="big-label">Target Temp</div>
+            <div class="big">${side.targetTemp}</div>
+          `
+      : ``}
+      ${showBed
+      ? `
+            <div class="big-label">Bed Temp</div>
+            <div class="big big-secondary">${side.bedTemp}</div>
+          `
+      : ``}
       <div class="mode">${panelIcon(card, view, "🔆")}${side.modeLabel}</div>
 
       <div class="meta">
@@ -543,8 +565,9 @@ function renderEightSleepBedGraphic(card, left, right) {
                     <path d="M206 104 C206 94, 214 88, 224 88 L306 88 C316 88, 324 94, 324 104 L324 130 C324 140, 316 146, 306 146 L224 146 C214 146, 206 140, 206 130 Z" fill="#f5f5f5"></path>
                     <path d="M370 104 C370 94, 378 88, 388 88 L470 88 C480 88, 488 94, 488 104 L488 130 C488 140, 480 146, 470 146 L388 146 C378 146, 370 140, 370 130 Z" fill="#f5f5f5"></path>
 
-                    ${card._renderAvatar(left, 278, 86)}
-                    ${card._renderAvatar(right, 442, 86)}
+                    ${card._singleSleeperMode
+      ? card._renderAvatar(left, 360, 86)
+      : `${card._renderAvatar(left, 278, 86)}${card._renderAvatar(right, 442, 86)}`}
 
                     ${card._config.show_occupancy_wash && left.occupied ? `<path d="M186 92 C186 82, 193 76, 203 76 L334 76 C344 76, 351 82, 351 92 L370 320 C371 334, 361 344, 347 344 L193 344 C179 344, 169 334, 170 320 Z" fill="${left.color}" opacity="0.08"></path>` : ``}
                     ${card._config.show_occupancy_wash && right.occupied ? `<path d="M348 92 C348 82, 355 76, 365 76 L496 76 C506 76, 513 82, 513 92 L532 320 C533 334, 523 344, 509 344 L355 344 C341 344, 331 334, 332 320 Z" fill="${right.color}" opacity="0.08"></path>` : ``}
@@ -555,16 +578,17 @@ function renderEightSleepBedGraphic(card, left, right) {
 
 function renderEightSleepCompactPanels(card, left, right, hub) {
   if (!card._config.show_compact_panels) return ``;
+  const sides = card._singleSleeperMode ? [left] : [left, right];
   return `
-                <div class="details">
-                  ${renderEightSleepSidePanel(card, left, "main")}
-                  ${renderEightSleepSidePanel(card, right, "main")}
+                <div class="details ${card._singleSleeperMode ? "single-side" : ""}">
+                  ${sides.map((side) => renderEightSleepSidePanel(card, side, "main")).join("")}
                 </div>
               `;
 }
 
 function renderEightSleepExpandedOverlay(card, left, right, hub) {
   if (!card._expanded) return ``;
+  const sides = card._singleSleeperMode ? [left] : [left, right];
   return `
               <div class="overlay" id="overlay">
                 <div class="overlay-card">
@@ -572,9 +596,8 @@ function renderEightSleepExpandedOverlay(card, left, right, hub) {
                     <div class="overlay-title">${card._config.title}</div>
                     <button class="close-button" title="Close">✕</button>
                   </div>
-                  <div class="details">
-                    ${renderEightSleepSidePanel(card, left, "overview")}
-                    ${renderEightSleepSidePanel(card, right, "overview")}
+                  <div class="details ${card._singleSleeperMode ? "single-side" : ""}">
+                    ${sides.map((side) => renderEightSleepSidePanel(card, side, "overview")).join("")}
                   </div>
                   <div class="expanded-layout">
                     ${renderEightSleepHubPanel(card, hub, "overview")}
@@ -600,6 +623,7 @@ class EightSleepCard extends HTMLElement {
     this._hass = null;
     this._expanded = false;
     this._lastRenderKey = "";
+    this._singleSleeperMode = false;
   }
 
   setConfig(config) {
@@ -648,6 +672,7 @@ class EightSleepCard extends HTMLElement {
       this._config.left?.next_alarm_entity,
       this._config.left?.presence_start_entity,
       this._config.left?.presence_end_entity,
+      this._config.left?.side_entity,
 
       this._config.right?.person_entity,
       this._config.right?.presence_entity,
@@ -666,6 +691,7 @@ class EightSleepCard extends HTMLElement {
       this._config.right?.next_alarm_entity,
       this._config.right?.presence_start_entity,
       this._config.right?.presence_end_entity,
+      this._config.right?.side_entity,
 
       this._config.hub?.room_temp_entity,
       this._config.hub?.has_water_entity,
@@ -709,6 +735,21 @@ class EightSleepCard extends HTMLElement {
   _formatTemp(value) {
     if (isEightSleepMissingValue(value)) {
       return "—";
+    }
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return `${Math.round(parsed * 10) / 10}°`;
+    }
+    return `${value}°`;
+  }
+
+  _formatRoomTemp(value) {
+    if (isEightSleepMissingValue(value)) {
+      return "—";
+    }
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return `${Math.round(parsed)}°`;
     }
     return `${value}°`;
   }
@@ -827,6 +868,72 @@ class EightSleepCard extends HTMLElement {
     return { label: "Ready", color: "#22c55e" };
   }
 
+  _normalizeSideType(value) {
+    const raw = String(value || "").toLowerCase();
+    if (raw.includes("both")) return "both";
+    if (raw.includes("left")) return "left";
+    if (raw.includes("right")) return "right";
+    return "";
+  }
+
+  _sideHasData(side) {
+    return [
+      side.targetTemp,
+      side.bedTemp,
+      side.sleepStage,
+      side.heartRate,
+      side.breathRate,
+      side.hrv,
+      side.timeSlept,
+      side.fitnessScore,
+      side.qualityScore,
+      side.routineScore,
+      side.nextAlarm,
+      side.presenceStart,
+      side.presenceEnd,
+    ].some((value) => value && value !== "—");
+  }
+
+  _cloneSideForBoth(source) {
+    return {
+      ...source,
+      name: "Both Sides",
+      sideType: "both",
+    };
+  }
+
+  _resolveSides(left, right) {
+    const manualSingleSleeper = !!this._config.one_person_both_sides;
+    const leftIsBoth = left.sideType === "both";
+    const rightIsBoth = right.sideType === "both";
+    const leftHasData = this._sideHasData(left);
+    const rightHasData = this._sideHasData(right);
+
+    let source = null;
+    if (leftIsBoth) {
+      source = left;
+    } else if (rightIsBoth) {
+      source = right;
+    } else if (manualSingleSleeper && leftHasData && !rightHasData) {
+      source = left;
+    } else if (manualSingleSleeper && rightHasData && !leftHasData) {
+      source = right;
+    } else if (manualSingleSleeper && leftHasData) {
+      source = left;
+    } else if (manualSingleSleeper && rightHasData) {
+      source = right;
+    }
+
+    if (!source) {
+      this._singleSleeperMode = false;
+      return { left, right };
+    }
+
+    const both = this._cloneSideForBoth(source);
+    this._singleSleeperMode = true;
+    return { left: both, right: both };
+  }
+
   _buildSide(sideConfig) {
     const personEntity = this._entity(sideConfig.person_entity);
     const personName =
@@ -835,7 +942,7 @@ class EightSleepCard extends HTMLElement {
       "Side";
 
     const personPicture = personEntity?.attributes?.entity_picture || "";
-    const personState = personEntity?.state || "—";
+    const sideType = this._normalizeSideType(this._state(sideConfig.side_entity, ""));
 
     const bedStateType = this._state(sideConfig.bed_state_type_entity, "unknown");
     const occupied = this._presenceOn(this._state(sideConfig.presence_entity, "off"));
@@ -859,7 +966,7 @@ class EightSleepCard extends HTMLElement {
       name: personName,
       personPicture,
       initials: this._initials(personName),
-      personState: this._safeText(personState, "—"),
+      sideType,
       occupied,
       color,
       modeLabel: this._modeLabel(bedStateType),
@@ -963,11 +1070,12 @@ class EightSleepCard extends HTMLElement {
   _render() {
     if (!this._config || !this._hass) return;
 
-    const left = this._buildSide(this._config.left);
-    const right = this._buildSide(this._config.right);
+    const rawLeft = this._buildSide(this._config.left);
+    const rawRight = this._buildSide(this._config.right);
+    const { left, right } = this._resolveSides(rawLeft, rawRight);
 
     const status = this._statusInfo();
-    const roomTemp = this._formatTemp(this._state(this._config.hub?.room_temp_entity, null));
+    const roomTemp = this._formatRoomTemp(this._state(this._config.hub?.room_temp_entity, null));
     const hasWater = this._presenceOn(this._state(this._config.hub?.has_water_entity, null));
     const isPriming = this._presenceOn(this._state(this._config.hub?.is_priming_entity, null));
     const needsPriming = this._presenceOn(this._state(this._config.hub?.needs_priming_entity, null));
@@ -1055,6 +1163,7 @@ class EightSleepCardEditor extends HTMLElement {
     this._loading = false;
     this._loaded = false;
     this._didInitialRender = false;
+    this._activeTab = "options";
   }
 
   setConfig(config) {
@@ -1314,6 +1423,20 @@ class EightSleepCardEditor extends HTMLElement {
     `;
   }
 
+  _matrixRow(label, cardPath, overviewPath) {
+    return `
+      <div class="matrix-row">
+        <div class="matrix-label">${label}</div>
+        <label class="matrix-check">
+          <input type="checkbox" data-path="${cardPath}" ${this._valueAt(cardPath) ? "checked" : ""} />
+        </label>
+        <label class="matrix-check">
+          <input type="checkbox" data-path="${overviewPath}" ${this._valueAt(overviewPath) ? "checked" : ""} />
+        </label>
+      </div>
+    `;
+  }
+
   _selector(label, path, kind) {
     return `
       <div class="field">
@@ -1341,6 +1464,7 @@ class EightSleepCardEditor extends HTMLElement {
       ${this._selector("Next alarm entity", `${sideKey}.next_alarm_entity`, "entity")}
       ${this._selector("Presence start entity", `${sideKey}.presence_start_entity`, "entity")}
       ${this._selector("Presence end entity", `${sideKey}.presence_end_entity`, "entity")}
+      ${this._selector("Side entity (left/right/both)", `${sideKey}.side_entity`, "entity")}
     `;
   }
 
@@ -1363,6 +1487,96 @@ class EightSleepCardEditor extends HTMLElement {
     `;
   }
 
+  _renderOptionMatrix(title, rows) {
+    return `
+      <div class="section">
+        <div class="section-title">${title}</div>
+        <div class="matrix-head">
+          <div></div>
+          <div>Card</div>
+          <div>Overview</div>
+        </div>
+        <div class="matrix">
+          ${rows.map((row) => this._matrixRow(row.label, row.card, row.overview)).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  _optionsTabContent() {
+    return `
+      ${this._section(
+      "General",
+      `
+            ${this._textField("Title", "title", this._valueAt("title"))}
+            ${this._selector("Avatar mode", "avatar_mode", "avatar_mode")}
+            ${this._selector("Power entity", "power_entity", "entity")}
+            ${this._toggle("Tap card to expand", "tap_action_expand", !!this._valueAt("tap_action_expand"))}
+            ${this._toggle("Use theme colors", "use_theme_colors", !!this._valueAt("use_theme_colors"))}
+            ${this._toggle("Show bed graphic", "show_bed_graphic", !!this._valueAt("show_bed_graphic"))}
+            ${this._toggle("Show compact panels", "show_compact_panels", !!this._valueAt("show_compact_panels"))}
+            ${this._toggle("Show occupancy wash", "show_occupancy_wash", !!this._valueAt("show_occupancy_wash"))}
+            ${this._toggle("One person uses both sides", "one_person_both_sides", !!this._valueAt("one_person_both_sides"))}
+          `
+    )}
+
+      ${this._renderOptionMatrix("Display Controls", [
+      { label: "Show icons", card: "show_icons_main", overview: "show_icons_overview" },
+      { label: "Show room temperature", card: "show_room_temp", overview: "show_room_temp_overview" },
+      { label: "Show bed status", card: "show_hub_status", overview: "show_hub_status_overview" },
+      { label: "Show has water", card: "show_has_water", overview: "show_has_water_overview" },
+      { label: "Show needs priming", card: "show_needs_priming", overview: "show_needs_priming_overview" },
+      { label: "Show is priming", card: "show_is_priming", overview: "show_is_priming_overview" },
+      { label: "Show last prime", card: "show_last_prime", overview: "show_last_prime_overview" },
+      { label: "Show target temperature", card: "show_target_temp", overview: "show_target_temp_overview" },
+      { label: "Show bed temperature", card: "show_bed_temp", overview: "show_bed_temp_overview" },
+      { label: "Show sleep stage", card: "show_sleep_stage", overview: "show_sleep_stage_overview" },
+      { label: "Show time slept", card: "show_time_slept", overview: "show_time_slept_overview" },
+      { label: "Show heart rate", card: "show_heart_rate", overview: "show_heart_rate_overview" },
+      { label: "Show breath rate", card: "show_breath_rate", overview: "show_breath_rate_overview" },
+      { label: "Show HRV", card: "show_hrv", overview: "show_hrv_overview" },
+      { label: "Show sleep scores", card: "show_scores", overview: "show_scores_overview" },
+      { label: "Show next alarm", card: "show_next_alarm", overview: "show_next_alarm_overview" },
+      { label: "Show presence times", card: "show_presence_times", overview: "show_presence_times_overview" },
+    ])}
+    `;
+  }
+
+  _entitiesTabContent() {
+    return `
+      ${this._section(
+      "Left Side",
+      `
+            ${this._textField("Display name", "left.name", this._valueAt("left.name"))}
+            ${this._selector("Left device", "left.device_id", "device")}
+            ${this._selector("Left person", "left.person_entity", "person")}
+            ${this._sideEntityFields("left")}
+            <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
+          `
+    )}
+
+      ${this._section(
+      "Right Side",
+      `
+            ${this._textField("Display name", "right.name", this._valueAt("right.name"))}
+            ${this._selector("Right device", "right.device_id", "device")}
+            ${this._selector("Right person", "right.person_entity", "person")}
+            ${this._sideEntityFields("right")}
+            <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
+          `
+    )}
+
+      ${this._section(
+      "Whole Bed / Hub",
+      `
+            ${this._selector("Hub device", "hub.device_id", "device")}
+            ${this._hubEntityFields()}
+            <div class="hint">Selecting the hub device auto-fills room temp, water, and priming sensors when found.</div>
+          `
+    )}
+    `;
+  }
+
   _render() {
     this.shadowRoot.innerHTML = `
       <style>
@@ -1375,6 +1589,28 @@ class EightSleepCardEditor extends HTMLElement {
           gap: 16px;
           padding: 12px 0;
           font-family: system-ui, sans-serif;
+        }
+
+        .tabs {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .tab-button {
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 12px;
+          background: rgba(255,255,255,0.03);
+          color: var(--primary-text-color);
+          font: inherit;
+          font-size: 13px;
+          padding: 8px 12px;
+          cursor: pointer;
+        }
+
+        .tab-button.active {
+          border-color: var(--primary-color);
+          background: color-mix(in srgb, var(--primary-color) 20%, rgba(255,255,255,0.03) 80%);
         }
 
         .section {
@@ -1430,6 +1666,44 @@ class EightSleepCardEditor extends HTMLElement {
           padding: 4px 0;
         }
 
+        .matrix-head,
+        .matrix-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 80px 80px;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .matrix-head {
+          padding: 0 0 8px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+          color: var(--secondary-text-color);
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .matrix {
+          display: grid;
+          gap: 8px;
+          margin-top: 10px;
+        }
+
+        .matrix-row {
+          min-height: 30px;
+        }
+
+        .matrix-label {
+          font-size: 12px;
+          color: var(--primary-text-color);
+        }
+
+        .matrix-check {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+
         .hint {
           font-size: 11px;
           color: var(--secondary-text-color);
@@ -1441,105 +1715,35 @@ class EightSleepCardEditor extends HTMLElement {
           font-size: 12px;
           color: var(--secondary-text-color);
         }
+
+        @media (max-width: 520px) {
+          .matrix-head,
+          .matrix-row {
+            grid-template-columns: minmax(0, 1fr) 64px 64px;
+          }
+        }
       </style>
 
       <div class="wrap">
-        ${this._section(
-      "General",
-      `
-            ${this._textField("Title", "title", this._valueAt("title"))}
-            ${this._selector("Avatar mode", "avatar_mode", "avatar_mode")}
-            ${this._selector("Power entity", "power_entity", "entity")}
-            ${this._toggle("Tap card to expand", "tap_action_expand", !!this._valueAt("tap_action_expand"))}
-            ${this._toggle("Use theme colors", "use_theme_colors", !!this._valueAt("use_theme_colors"))}
-            ${this._toggle("Show icons on main card", "show_icons_main", !!this._valueAt("show_icons_main"))}
-            ${this._toggle("Show icons on overview", "show_icons_overview", !!this._valueAt("show_icons_overview"))}
-            ${this._toggle("Show bed graphic", "show_bed_graphic", !!this._valueAt("show_bed_graphic"))}
-            ${this._toggle("Show compact panels", "show_compact_panels", !!this._valueAt("show_compact_panels"))}
-            ${this._toggle("Show occupancy wash", "show_occupancy_wash", !!this._valueAt("show_occupancy_wash"))}
-          `
-    )}
+        <div class="tabs">
+          <button class="tab-button ${this._activeTab === "options" ? "active" : ""}" data-tab="options">Options</button>
+          <button class="tab-button ${this._activeTab === "entities" ? "active" : ""}" data-tab="entities">Entities</button>
+        </div>
 
-        ${this._section(
-      "Top / Hub Data",
-      `
-            ${this._toggle("Show room temperature", "show_room_temp", !!this._valueAt("show_room_temp"))}
-            ${this._toggle("Show room temperature (overview)", "show_room_temp_overview", !!this._valueAt("show_room_temp_overview"))}
-            ${this._toggle("Show bed status", "show_hub_status", !!this._valueAt("show_hub_status"))}
-            ${this._toggle("Show bed status (overview)", "show_hub_status_overview", !!this._valueAt("show_hub_status_overview"))}
-            ${this._toggle("Show has water", "show_has_water", !!this._valueAt("show_has_water"))}
-            ${this._toggle("Show has water (overview)", "show_has_water_overview", !!this._valueAt("show_has_water_overview"))}
-            ${this._toggle("Show needs priming", "show_needs_priming", !!this._valueAt("show_needs_priming"))}
-            ${this._toggle("Show needs priming (overview)", "show_needs_priming_overview", !!this._valueAt("show_needs_priming_overview"))}
-            ${this._toggle("Show is priming", "show_is_priming", !!this._valueAt("show_is_priming"))}
-            ${this._toggle("Show is priming (overview)", "show_is_priming_overview", !!this._valueAt("show_is_priming_overview"))}
-            ${this._toggle("Show last prime", "show_last_prime", !!this._valueAt("show_last_prime"))}
-            ${this._toggle("Show last prime (overview)", "show_last_prime_overview", !!this._valueAt("show_last_prime_overview"))}
-          `
-    )}
-
-        ${this._section(
-      "Person / Side Metrics",
-      `
-            ${this._toggle("Show target temperature", "show_target_temp", !!this._valueAt("show_target_temp"))}
-            ${this._toggle("Show target temperature (overview)", "show_target_temp_overview", !!this._valueAt("show_target_temp_overview"))}
-            ${this._toggle("Show bed temperature", "show_bed_temp", !!this._valueAt("show_bed_temp"))}
-            ${this._toggle("Show bed temperature (overview)", "show_bed_temp_overview", !!this._valueAt("show_bed_temp_overview"))}
-            ${this._toggle("Show sleep stage", "show_sleep_stage", !!this._valueAt("show_sleep_stage"))}
-            ${this._toggle("Show sleep stage (overview)", "show_sleep_stage_overview", !!this._valueAt("show_sleep_stage_overview"))}
-            ${this._toggle("Show time slept", "show_time_slept", !!this._valueAt("show_time_slept"))}
-            ${this._toggle("Show time slept (overview)", "show_time_slept_overview", !!this._valueAt("show_time_slept_overview"))}
-            ${this._toggle("Show heart rate", "show_heart_rate", !!this._valueAt("show_heart_rate"))}
-            ${this._toggle("Show heart rate (overview)", "show_heart_rate_overview", !!this._valueAt("show_heart_rate_overview"))}
-            ${this._toggle("Show breath rate", "show_breath_rate", !!this._valueAt("show_breath_rate"))}
-            ${this._toggle("Show breath rate (overview)", "show_breath_rate_overview", !!this._valueAt("show_breath_rate_overview"))}
-            ${this._toggle("Show HRV", "show_hrv", !!this._valueAt("show_hrv"))}
-            ${this._toggle("Show HRV (overview)", "show_hrv_overview", !!this._valueAt("show_hrv_overview"))}
-            ${this._toggle("Show sleep scores", "show_scores", !!this._valueAt("show_scores"))}
-            ${this._toggle("Show sleep scores (overview)", "show_scores_overview", !!this._valueAt("show_scores_overview"))}
-            ${this._toggle("Show next alarm", "show_next_alarm", !!this._valueAt("show_next_alarm"))}
-            ${this._toggle("Show next alarm (overview)", "show_next_alarm_overview", !!this._valueAt("show_next_alarm_overview"))}
-            ${this._toggle("Show presence times", "show_presence_times", !!this._valueAt("show_presence_times"))}
-            ${this._toggle("Show presence times (overview)", "show_presence_times_overview", !!this._valueAt("show_presence_times_overview"))}
-            ${this._toggle("Show person location", "show_location", !!this._valueAt("show_location"))}
-            ${this._toggle("Show person location (overview)", "show_location_overview", !!this._valueAt("show_location_overview"))}
-          `
-    )}
-
-        ${this._section(
-      "Left Side",
-      `
-            ${this._textField("Display name", "left.name", this._valueAt("left.name"))}
-            ${this._selector("Left device", "left.device_id", "device")}
-            ${this._selector("Left person", "left.person_entity", "person")}
-            ${this._sideEntityFields("left")}
-            <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
-          `
-    )}
-
-        ${this._section(
-      "Right Side",
-      `
-            ${this._textField("Display name", "right.name", this._valueAt("right.name"))}
-            ${this._selector("Right device", "right.device_id", "device")}
-            ${this._selector("Right person", "right.person_entity", "person")}
-            ${this._sideEntityFields("right")}
-            <div class="hint">Selecting a device auto-fills the matching Eight Sleep entities for this side.</div>
-          `
-    )}
-
-        ${this._section(
-      "Whole Bed / Hub",
-      `
-            ${this._selector("Hub device", "hub.device_id", "device")}
-            ${this._hubEntityFields()}
-            <div class="hint">Selecting the hub device auto-fills room temp, water, and priming sensors when found.</div>
-          `
-    )}
+        ${this._activeTab === "entities" ? this._entitiesTabContent() : this._optionsTabContent()}
 
         ${this._loading ? `<div class="loading">Loading device registry…</div>` : ``}
       </div>
     `;
+
+    this.shadowRoot.querySelectorAll(".tab-button").forEach((button) => {
+      button.addEventListener("click", (ev) => {
+        const tab = ev.currentTarget?.dataset?.tab;
+        if (!tab || tab === this._activeTab) return;
+        this._activeTab = tab;
+        this._render();
+      });
+    });
 
     this.shadowRoot.querySelectorAll(".text-input").forEach((input) => {
       input.addEventListener("input", (ev) => {
